@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7dd3fc"/>
+      <stop offset="100%" stop-color="#bae6fd"/>
+    </linearGradient>
+    <linearGradient id="water" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0ea5e9"/>
+    </linearGradient>
+  </defs>
+  <!-- Sky -->
+  <rect width="400" height="260" rx="12" fill="url(#sky)"/>
+  <!-- Sun -->
+  <circle cx="320" cy="60" r="35" fill="#fbbf24" opacity="0.9"/>
+  <!-- Clouds -->
+  <ellipse cx="80" cy="50" rx="40" ry="16" fill="white" opacity="0.7"/>
+  <ellipse cx="110" cy="45" rx="30" ry="14" fill="white" opacity="0.6"/>
+  <ellipse cx="220" cy="70" rx="35" ry="12" fill="white" opacity="0.5"/>
+  <!-- Far mountains -->
+  <polygon points="0,180 60,100 120,160 180,90 240,150 300,80 360,140 400,120 400,180" fill="#8b5cf6" opacity="0.4"/>
+  <!-- Near mountains -->
+  <polygon points="0,180 70,120 140,170 210,110 280,160 350,100 400,150 400,180" fill="#6366f1" opacity="0.5"/>
+  <!-- Hills -->
+  <ellipse cx="100" cy="195" rx="120" ry="40" fill="#22c55e" opacity="0.7"/>
+  <ellipse cx="300" cy="190" rx="140" ry="45" fill="#16a34a" opacity="0.6"/>
+  <!-- Water -->
+  <rect y="200" width="400" height="60" rx="0" fill="url(#water)" opacity="0.8"/>
+  <!-- Water ripples -->
+  <line x1="30" y1="215" x2="80" y2="215" stroke="white" stroke-width="1" opacity="0.3"/>
+  <line x1="150" y1="225" x2="210" y2="225" stroke="white" stroke-width="1" opacity="0.25"/>
+  <line x1="280" y1="220" x2="340" y2="220" stroke="white" stroke-width="1" opacity="0.3"/>
+  <line x1="100" y1="240" x2="170" y2="240" stroke="white" stroke-width="1" opacity="0.2"/>
+  <!-- Trees -->
+  <polygon points="50,180 60,140 70,180" fill="#15803d"/>
+  <polygon points="55,160 62,130 69,160" fill="#16a34a"/>
+  <rect x="59" y="180" width="4" height="12" fill="#92400e"/>
+  <polygon points="340,175 355,125 370,175" fill="#15803d"/>
+  <polygon points="345,150 355,115 365,150" fill="#16a34a"/>
+  <rect x="353" y="175" width="4" height="12" fill="#92400e"/>
+  <!-- Border -->
+  <rect width="400" height="260" rx="12" fill="none" stroke="white" stroke-width="2" opacity="0.3"/>
+</svg>

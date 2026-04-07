@@ -1,0 +1,75 @@
+{
+  "name": "use-zoom-pinch",
+  "version": "0.1.0",
+  "description": "Lightweight React hook for pan, pinch-to-zoom, and scroll zoom with trackpad and touch support",
+  "keywords": [
+    "react",
+    "hook",
+    "zoom",
+    "pinch",
+    "pan",
+    "gesture",
+    "trackpad",
+    "touch",
+    "canvas",
+    "infinite-canvas",
+    "react-hooks"
+  ],
+  "license": "MIT",
+  "author": "nemezzizz",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NemeZZiZZ/use-zoom-pinch.git"
+  },
+  "homepage": "https://nemezzizz.github.io/use-zoom-pinch/",
+  "bugs": {
+    "url": "https://github.com/NemeZZiZZ/use-zoom-pinch/issues"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run typecheck && npm run lint && npm run build"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "eslint": "^9.0.0",
+    "@eslint/js": "^9.0.0",
+    "typescript-eslint": "^8.0.0",
+    "prettier": "^3.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.5.0",
+    "react": "^19.0.0"
+  },
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  }
+}
