@@ -1,0 +1,135 @@
+---
+title: Zoom to Element
+description: Programmatically zoom and center on a specific DOM element.
+---
+
+import { Aside } from "@astrojs/starlight/components"
+
+`zoomToElement` calculates the position and scale needed to center a specific DOM element in the viewport, then applies the transform (optionally animated).
+
+## Basic usage
+
+```tsx
+const { zoomToElement } = useZoomPinch({ containerRef })
+
+const handleClick = (el: HTMLElement) => {
+  zoomToElement(el, 2, { animate: true })
+}
+```
+
+### Parameters
+
+| Parameter | Type               | Default      | Description            |
+| --------- | ------------------ | ------------ | ---------------------- |
+| `el`      | `HTMLElement`      | _required_   | The element to zoom to |
+| `scale`   | `number`           | current zoom | Target zoom level      |
+| `options` | `AnimationOptions` | —            | Animation config       |
+
+## Image gallery
+
+Click a thumbnail to zoom into it:
+
+```tsx
+function Gallery() {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const { view, zoomToElement, resetView } = useZoomPinch({ containerRef })
+
+  const handleImageClick = (e: React.MouseEvent<HTMLImageElement>) => {
+    if (view.zoom > 1.05) {
+      resetView({ animate: true })
+    } else {
+      zoomToElement(e.currentTarget, 3, { animate: true })
+    }
+  }
+
+  return (
+    <div ref={containerRef} style={{ overflow: "hidden", touchAction: "none" }}>
+      <div
+        style={{
+          transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})`,
+          transformOrigin: "0 0",
+        }}
+      >
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 200px)", gap: 16 }}>
+          {images.map((src) => (
+            <img
+              key={src}
+              src={src}
+              onClick={handleImageClick}
+              style={{ cursor: "pointer", width: 200 }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+## Document navigation
+
+Jump to sections in a document viewer:
+
+```tsx
+function DocViewer() {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
+  const { view, zoomToElement } = useZoomPinch({ containerRef })
+
+  const goToSection = (id: string) => {
+    const el = sectionRefs.current[id]
+    if (el) zoomToElement(el, 1, { animate: true, duration: 500 })
+  }
+
+  return (
+    <>
+      <nav>
+        <button onClick={() => goToSection("intro")}>Introduction</button>
+        <button onClick={() => goToSection("chapter1")}>Chapter 1</button>
+      </nav>
+      <div ref={containerRef} style={{ overflow: "hidden", touchAction: "none" }}>
+        <div
+          style={{
+            transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})`,
+            transformOrigin: "0 0",
+          }}
+        >
+          <div
+            ref={(el) => {
+              sectionRefs.current.intro = el
+            }}
+          >
+            <h2>Introduction</h2>
+            <p>...</p>
+          </div>
+          <div
+            ref={(el) => {
+              sectionRefs.current.chapter1 = el
+            }}
+          >
+            <h2>Chapter 1</h2>
+            <p>...</p>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}
+```
+
+## How it works
+
+1. Get the `getBoundingClientRect()` of both the container and the target element.
+2. Convert the element's screen position to **content-space coordinates** (accounting for current pan and zoom).
+3. Calculate the offset needed to center the element at the target zoom level.
+4. Apply via `animateTo` (if animated) or `updateView` (instant).
+
+<Aside type="caution">
+  The target element must be a **rendered descendant** of the transformed content (inside the
+  container). Elements outside the container won't have correct coordinates.
+</Aside>
+
+<Aside type="tip">
+  If you omit the `scale` parameter, the current zoom level is preserved — only the position changes
+  to center the element.
+</Aside>

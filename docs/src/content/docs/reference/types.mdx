@@ -1,0 +1,377 @@
+---
+title: Types
+description: Complete TypeScript type definitions exported by use-zoom-pinch.
+---
+
+All types are exported from the main package entry point:
+
+```tsx
+import type {
+  ViewState,
+  UseZoomPinchOptions,
+  UseZoomPinchReturn,
+  AnimationOptions,
+  EasingFunction,
+  DoubleTapOptions,
+  InertiaOptions,
+  GesturesOptions,
+  BoundsOptions,
+  KeyboardOptions,
+  SnapToGridOptions,
+  ZoomSnapLevel,
+  RotationOptions,
+  CursorOptions,
+  ActivationKeyOptions,
+} from "use-zoom-pinch"
+```
+
+---
+
+## `ViewState`
+
+Represents the current position and zoom level of the content.
+
+```tsx
+interface ViewState {
+  /** Horizontal offset of content origin from container top-left (pixels) */
+  x: number
+  /** Vertical offset of content origin from container top-left (pixels) */
+  y: number
+  /** Scale factor. 1 = 100%, 2 = 200%, 0.5 = 50% */
+  zoom: number
+  /** Rotation angle in degrees. @default 0 */
+  rotation?: number
+}
+```
+
+### Coordinate system
+
+The origin `(0, 0)` is the top-left corner of the content. With `transformOrigin: "0 0"`:
+
+- `view.x = 100` means the content origin is 100px to the right of the container's left edge
+- `view.y = -50` means the content origin is 50px above the container's top edge
+- `view.zoom = 2` means the content is rendered at 200% scale
+- `view.rotation = 45` means the content is rotated 45° clockwise
+
+---
+
+## `AnimationOptions`
+
+Configuration for animated transitions.
+
+```tsx
+interface AnimationOptions {
+  /** Enable animated transition. @default false */
+  animate?: boolean
+  /** Animation duration in milliseconds. @default 300 */
+  duration?: number
+  /** Easing function. @default easeOut */
+  easing?: EasingFunction
+}
+```
+
+When `animate` is `false` or omitted, the transition is instant (backward-compatible).
+
+---
+
+## `EasingFunction`
+
+```tsx
+type EasingFunction = (t: number) => number
+```
+
+A function that maps a progress value `t` (from `0` to `1`) to an output value. Three built-in functions are exported:
+
+```tsx
+import { linear, easeOut, easeInOut } from "use-zoom-pinch"
+```
+
+| Function    | Formula         | Curve                |
+| ----------- | --------------- | -------------------- |
+| `linear`    | `t`             | Constant speed       |
+| `easeOut`   | `1 - (1 - t)^3` | Fast start, slow end |
+| `easeInOut` | Cubic in-out    | Slow-fast-slow       |
+
+---
+
+## `DoubleTapOptions`
+
+Configuration for double-tap/double-click zoom gesture.
+
+```tsx
+interface DoubleTapOptions {
+  /** Enable double-tap gesture. @default true */
+  enabled?: boolean
+  /** Behavior on double-tap. @default "toggle" */
+  mode?: "zoomIn" | "reset" | "toggle"
+  /** Zoom step for zoomIn/toggle modes. @default 2 */
+  step?: number
+}
+```
+
+### Modes
+
+- **`"toggle"`** — If zoom is close to 1x, zoom in by `step` to the tap point. If already zoomed, reset to `{ x: 0, y: 0, zoom: 1 }`.
+- **`"zoomIn"`** — Always zoom in by `step`, anchored to the tap point. No upper limit except `maxScale`.
+- **`"reset"`** — Always reset to default view regardless of current zoom.
+
+### Detection parameters
+
+Hardcoded (not configurable):
+
+- Max delay between taps: **300ms**
+- Max distance between taps: **25px**
+- Drag threshold: any `pointermove` between `pointerdown` and `pointerup` cancels the tap
+
+---
+
+## `InertiaOptions`
+
+Configuration for pan momentum after pointer release.
+
+```tsx
+interface InertiaOptions {
+  /** Enable inertia after pan release. @default true */
+  enabled?: boolean
+  /** Friction factor per frame (0-1). Lower = more friction. @default 0.92 */
+  friction?: number
+}
+```
+
+### Friction
+
+The velocity is multiplied by `friction` on each animation frame (~60fps). The animation stops when velocity drops below 0.5 px/frame.
+
+---
+
+## `GesturesOptions`
+
+Toggle individual gesture types.
+
+```tsx
+interface GesturesOptions {
+  /** Enable panning gestures (drag, scroll). @default true */
+  pan?: boolean
+  /** Enable zoom gestures (wheel zoom, pinch zoom, double-tap zoom). @default true */
+  zoom?: boolean
+  /** Enable rotation gestures (two-finger rotation). @default false */
+  rotate?: boolean
+}
+```
+
+---
+
+## `BoundsOptions`
+
+Constrain panning within rectangular bounds.
+
+```tsx
+interface BoundsOptions {
+  /** Minimum x offset (pixels). Content can't go further left. */
+  minX?: number
+  /** Maximum x offset (pixels). Content can't go further right. */
+  maxX?: number
+  /** Minimum y offset (pixels). Content can't go further up. */
+  minY?: number
+  /** Maximum y offset (pixels). Content can't go further down. */
+  maxY?: number
+  /** Behavior when view hits bounds during gestures. @default "clamp" */
+  mode?: "clamp" | "bounce"
+  /** Rubber-band factor for bounce mode (0–1). Lower = stiffer. @default 0.3 */
+  bounceFactor?: number
+}
+```
+
+All properties are optional. Omitting a bound makes that direction unconstrained.
+
+- **`"clamp"`** — Hard stop at bounds
+- **`"bounce"`** — Rubber-band effect: content overshoots with resistance, then snaps back on gesture end
+
+---
+
+## `KeyboardOptions`
+
+Configuration for keyboard navigation.
+
+```tsx
+interface KeyboardOptions {
+  /** Enable keyboard navigation. @default false */
+  enabled?: boolean
+  /** Pan step in pixels per key press. @default 50 */
+  panStep?: number
+  /** Zoom step multiplier per key press. @default 1.5 */
+  zoomStep?: number
+  /** Rotation step in degrees per key press. @default 15 */
+  rotateStep?: number
+}
+```
+
+### Key bindings
+
+| Key                        | Action                                    |
+| -------------------------- | ----------------------------------------- |
+| `ArrowLeft` / `ArrowRight` | Pan horizontally                          |
+| `ArrowUp` / `ArrowDown`    | Pan vertically                            |
+| `+` / `=`                  | Zoom in                                   |
+| `-`                        | Zoom out                                  |
+| `0`                        | Reset view                                |
+| `[` / `]`                  | Rotate (requires `gestures.rotate: true`) |
+
+Keyboard events are ignored when focus is on `<input>`, `<textarea>`, or `<select>` elements.
+
+---
+
+## `SnapToGridOptions`
+
+Configuration for snapping view position to a grid.
+
+```tsx
+interface SnapToGridOptions {
+  /** Grid cell size in content-space pixels. */
+  size: number
+  /** When to snap: on gesture end, or continuously. @default "end" */
+  mode?: "end" | "always"
+}
+```
+
+- **`"end"`** — Snaps with animation after gesture completes
+- **`"always"`** — Snaps continuously during gestures (in `updateView`)
+
+---
+
+## `ZoomSnapLevel`
+
+```tsx
+type ZoomSnapLevel = number
+```
+
+A zoom level to snap to on gesture end. Used with the `zoomSnapLevels` option.
+
+---
+
+## `RotationOptions`
+
+Configuration for rotation constraints and snap levels.
+
+```tsx
+interface RotationOptions {
+  /** Minimum rotation angle in degrees. */
+  minAngle?: number
+  /** Maximum rotation angle in degrees. */
+  maxAngle?: number
+  /** Snap levels in degrees. Rotation snaps to nearest on gesture end. */
+  snapLevels?: number[]
+}
+```
+
+---
+
+## `CursorOptions`
+
+Configuration for automatic cursor management.
+
+```tsx
+interface CursorOptions {
+  /** Enable automatic cursor management. @default true */
+  enabled?: boolean
+  /** Cursor when idle (hovering). @default "grab" */
+  idle?: string
+  /** Cursor while dragging. @default "grabbing" */
+  dragging?: string
+  /** Cursor while zooming. @default "zoom-in" */
+  zooming?: string
+}
+```
+
+---
+
+## `ActivationKeyOptions`
+
+Require a keyboard key to be held for specific gesture types.
+
+```tsx
+interface ActivationKeyOptions {
+  /** Key that must be held to pan (e.g. "Shift"). */
+  pan?: string
+  /** Key that must be held to zoom (e.g. "Alt"). */
+  zoom?: string
+  /** Key that must be held to rotate (e.g. "Control"). */
+  rotate?: string
+}
+```
+
+---
+
+## `UseZoomPinchOptions`
+
+The full options interface for the hook. See [API Reference](/use-zoom-pinch/reference/api/) for detailed descriptions.
+
+```tsx
+interface UseZoomPinchOptions {
+  containerRef: RefObject<HTMLElement | null>
+  minScale?: number
+  maxScale?: number
+  panSpeed?: number
+  zoomSpeed?: number
+  initialViewState?: ViewState
+  viewState?: ViewState
+  onViewStateChange?: (view: ViewState) => void
+  enabled?: boolean
+  gestures?: GesturesOptions
+  bounds?: BoundsOptions
+  panButton?: 0 | 1 | 2
+  keyboard?: KeyboardOptions | boolean
+  zoomSnapLevels?: ZoomSnapLevel[]
+  snapToGrid?: SnapToGridOptions | false
+  contentRect?: { width: number; height: number }
+  rotation?: RotationOptions
+  wheelMode?: "pan" | "zoom"
+  cursor?: CursorOptions | false
+  axis?: "x" | "y"
+  activationKeys?: ActivationKeyOptions
+  shouldHandleEvent?: (event: PointerEvent | WheelEvent | TouchEvent) => boolean
+  doubleTap?: DoubleTapOptions | false
+  inertia?: InertiaOptions | false
+  onPanStart?: (view: ViewState) => void
+  onPanEnd?: (view: ViewState) => void
+  onZoomStart?: (view: ViewState) => void
+  onZoomEnd?: (view: ViewState) => void
+  onPinchStart?: (view: ViewState) => void
+  onPinchEnd?: (view: ViewState) => void
+  onRotateStart?: (view: ViewState) => void
+  onRotateEnd?: (view: ViewState) => void
+  onTransformEnd?: (view: ViewState) => void
+}
+```
+
+---
+
+## `UseZoomPinchReturn`
+
+The return value of the hook.
+
+```tsx
+interface UseZoomPinchReturn {
+  view: ViewState
+  isAnimating: boolean
+  setView: (view: ViewState, options?: AnimationOptions) => void
+  centerZoom: (targetZoom: number, options?: AnimationOptions) => void
+  resetView: (options?: AnimationOptions) => void
+  zoomIn: (step?: number, options?: AnimationOptions) => void
+  zoomOut: (step?: number, options?: AnimationOptions) => void
+  zoomToElement: (el: HTMLElement, scale?: number, options?: AnimationOptions) => void
+  panTo: (x: number, y: number, options?: AnimationOptions) => void
+  panBy: (dx: number, dy: number, options?: AnimationOptions) => void
+  zoomTo: (zoom: number, point?: { x: number; y: number }, options?: AnimationOptions) => void
+  fitToRect: (
+    rect: { x: number; y: number; width: number; height: number },
+    options?: AnimationOptions & { padding?: number },
+  ) => void
+  rotateTo: (angle: number, options?: AnimationOptions) => void
+  rotateBy: (delta: number, options?: AnimationOptions) => void
+  screenToContent: (screenX: number, screenY: number) => { x: number; y: number }
+  contentToScreen: (contentX: number, contentY: number) => { x: number; y: number }
+  fitToContent: (options?: AnimationOptions & { padding?: number }) => void
+  snapZoom: (options?: AnimationOptions) => void
+}
+```

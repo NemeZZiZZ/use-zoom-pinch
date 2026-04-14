@@ -1,0 +1,63 @@
+---
+interface Props {
+  title?: string
+}
+
+const { title } = Astro.props
+---
+
+<div class="code-preview not-content">
+  {title && <div class="code-preview-title">{title}</div>}
+  <div class="code-preview-demo">
+    <slot name="preview" />
+  </div>
+  <div class="code-preview-code">
+    <slot />
+  </div>
+</div>
+
+<style>
+  .code-preview {
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 1.5rem 0;
+  }
+  .code-preview :global(.tablist-wrapper:where(.astro-esqgolmp)~[role="tabpanel"]) {
+    margin: 0;
+  }
+
+  .code-preview-title {
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--sl-color-gray-2);
+    background: var(--sl-color-gray-6);
+    border-bottom: 1px solid var(--sl-color-gray-5);
+  }
+
+  .code-preview-demo {
+    padding: 0;
+    background: var(--sl-color-gray-6);
+  }
+
+  .code-preview-code {
+    border-top: 1px solid var(--sl-color-gray-5);
+  }
+
+  /* Remove margins/borders from code blocks inside */
+  .code-preview-code :global(figure) {
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+  }
+
+  .code-preview-code :global(starlight-tabs) {
+    border: none !important;
+    margin: 0 !important;
+  }
+
+  .code-preview-code :global(section[role="tabpanel"]) {
+    padding: 0 !important;
+  }
+</style>

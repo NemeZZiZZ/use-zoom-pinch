@@ -1,0 +1,141 @@
+---
+title: Controlled Mode
+description: Sync zoom/pan state with React state using the controlled mode pattern.
+---
+
+import { Aside } from "@astrojs/starlight/components"
+
+useZoomPinch supports both **controlled** and **uncontrolled** modes, just like native React inputs.
+
+## Uncontrolled (default)
+
+The hook manages state internally. You read it via `view` and change it via imperative methods:
+
+```tsx
+const { view, setView, resetView } = useZoomPinch({ containerRef })
+// view is read-only, updated by gestures or imperative methods
+```
+
+Use `initialViewState` to set the starting position:
+
+```tsx
+const { view } = useZoomPinch({
+  containerRef,
+  initialViewState: { x: 100, y: 200, zoom: 2 },
+})
+```
+
+## Controlled
+
+Pass `viewState` and `onViewStateChange` to take full control:
+
+```tsx
+import { useRef, useState } from "react"
+import { useZoomPinch, type ViewState } from "use-zoom-pinch"
+
+function ControlledCanvas() {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [viewState, setViewState] = useState<ViewState>({ x: 0, y: 0, zoom: 1 })
+
+  const { view } = useZoomPinch({
+    containerRef,
+    viewState,
+    onViewStateChange: setViewState,
+  })
+
+  return (
+    <div ref={containerRef} style={{ overflow: "hidden", touchAction: "none" }}>
+      <div
+        style={{
+          transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})`,
+          transformOrigin: "0 0",
+        }}
+      >
+        {/* content */}
+      </div>
+    </div>
+  )
+}
+```
+
+## Why controlled mode?
+
+### Persist and restore view state
+
+Save to localStorage, URL params, or a database:
+
+```tsx
+const [viewState, setViewState] = useState<ViewState>(() => {
+  const saved = localStorage.getItem("canvasView")
+  return saved ? JSON.parse(saved) : { x: 0, y: 0, zoom: 1 }
+})
+
+// Save on change
+const handleChange = (view: ViewState) => {
+  setViewState(view)
+  localStorage.setItem("canvasView", JSON.stringify(view))
+}
+
+useZoomPinch({
+  containerRef,
+  viewState,
+  onViewStateChange: handleChange,
+})
+```
+
+### Sync multiple canvases
+
+Two containers showing the same content at the same position:
+
+```tsx
+const [viewState, setViewState] = useState<ViewState>({ x: 0, y: 0, zoom: 1 })
+
+// Both canvases share the same view
+const canvas1 = useZoomPinch({ containerRef: ref1, viewState, onViewStateChange: setViewState })
+const canvas2 = useZoomPinch({ containerRef: ref2, viewState, onViewStateChange: setViewState })
+```
+
+### Constrain or transform updates
+
+Intercept and modify updates before applying:
+
+```tsx
+const handleChange = (view: ViewState) => {
+  // Snap zoom to 25% increments
+  const snappedZoom = Math.round(view.zoom * 4) / 4
+  setViewState({ ...view, zoom: snappedZoom })
+}
+```
+
+### Display in UI
+
+Since `viewState` is React state, it triggers re-renders for dependent UI:
+
+```tsx
+<div>
+  Position: ({viewState.x.toFixed(0)}, {viewState.y.toFixed(0)}) Zoom:{" "}
+  {Math.round(viewState.zoom * 100)}%
+</div>
+```
+
+<Aside type="caution">
+  In controlled mode, the hook **never** updates internal state. If you don't call `setViewState`
+  inside `onViewStateChange`, gestures will appear to do nothing — the view will snap back to the
+  last `viewState` you provided.
+</Aside>
+
+## Mixing controlled + imperative
+
+Imperative methods (`setView`, `zoomIn`, etc.) work in controlled mode too — they call your `onViewStateChange`:
+
+```tsx
+const { zoomIn, resetView } = useZoomPinch({
+  containerRef,
+  viewState,
+  onViewStateChange: setViewState,
+})
+
+// These call setViewState under the hood
+<button onClick={() => zoomIn(1.5, { animate: true })}>Zoom In</button>
+<button onClick={() => resetView({ animate: true })}>Reset</button>
+```

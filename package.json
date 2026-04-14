@@ -1,25 +1,40 @@
 {
   "name": "use-zoom-pinch",
-  "version": "0.1.0",
-  "description": "Lightweight React hook for pan, pinch-to-zoom, and scroll zoom with trackpad and touch support",
+  "version": "0.3.0",
+  "description": "Lightweight React hook for pan, pinch-to-zoom, rotation, and scroll zoom with trackpad and touch support. ~5.2 KB gzipped, zero dependencies.",
   "keywords": [
     "react",
     "hook",
     "zoom",
     "pinch",
     "pan",
+    "rotate",
+    "rotation",
     "gesture",
     "trackpad",
     "touch",
     "canvas",
     "infinite-canvas",
-    "react-hooks"
+    "react-hooks",
+    "scroll-zoom",
+    "pinch-to-zoom",
+    "drag",
+    "inertia",
+    "keyboard-navigation",
+    "bounds",
+    "snap-to-grid",
+    "coordinate-conversion",
+    "headless",
+    "controlled-component",
+    "animation",
+    "image-viewer",
+    "map"
   ],
   "license": "MIT",
   "author": "nemezzizz",
   "repository": {
     "type": "git",
-    "url": "https://github.com/NemeZZiZZ/use-zoom-pinch.git"
+    "url": "git+https://github.com/NemeZZiZZ/use-zoom-pinch.git"
   },
   "homepage": "https://nemezzizz.github.io/use-zoom-pinch/",
   "bugs": {
@@ -53,20 +68,30 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "npm run typecheck && npm run lint && npm run build"
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest",
+    "docs:dev": "cd docs && npm run dev",
+    "docs:build": "cd docs && npm run build",
+    "prepublishOnly": "npm run test && npm run typecheck && npm run lint && npm run build"
   },
   "peerDependencies": {
     "react": ">=18.0.0"
   },
   "devDependencies": {
-    "@types/react": "^19.0.0",
-    "eslint": "^9.0.0",
     "@eslint/js": "^9.0.0",
-    "typescript-eslint": "^8.0.0",
+    "@testing-library/react": "^16.3.2",
+    "@types/react": "^19.0.0",
+    "@vitest/coverage-v8": "^4.1.4",
+    "eslint": "^9.0.0",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "jsdom": "^29.0.2",
     "prettier": "^3.0.0",
-    "tsup": "^8.0.0",
+    "react": "^19.0.0",
+    "tsup": "^8.4.0",
     "typescript": "^5.5.0",
-    "react": "^19.0.0"
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^4.1.4"
   },
   "sideEffects": false,
   "engines": {

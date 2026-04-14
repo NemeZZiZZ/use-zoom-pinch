@@ -1,0 +1,122 @@
+---
+title: Granular Events
+description: Subscribe to specific gesture lifecycle events for analytics, side effects, and UI feedback.
+---
+
+import { Aside } from "@astrojs/starlight/components"
+
+Beyond the main `onViewStateChange` callback, useZoomPinch provides six granular event callbacks for gesture lifecycle tracking.
+
+## Available events
+
+| Callback       | Fires when                          | Trigger                   |
+| -------------- | ----------------------------------- | ------------------------- |
+| `onPanStart`   | Pointer drag begins                 | `pointerdown`             |
+| `onPanEnd`     | Pointer drag ends (all pointers up) | `pointerup`               |
+| `onZoomStart`  | First ctrl+wheel event              | `wheel` with ctrlKey      |
+| `onZoomEnd`    | 150ms after last ctrl+wheel event   | Debounced                 |
+| `onPinchStart` | Two-finger touch begins             | `touchstart` (2+ touches) |
+| `onPinchEnd`   | Fingers reduced below 2             | `touchend`                |
+
+All callbacks receive the current `ViewState` as their argument:
+
+```tsx
+useZoomPinch({
+  containerRef,
+  onPanStart: (view) => console.log("Pan started at", view),
+  onPanEnd: (view) => console.log("Pan ended at", view),
+  onZoomStart: (view) => console.log("Zoom started at", view),
+  onZoomEnd: (view) => console.log("Zoom ended at", view),
+  onPinchStart: (view) => console.log("Pinch started at", view),
+  onPinchEnd: (view) => console.log("Pinch ended at", view),
+})
+```
+
+## Use cases
+
+### Cursor feedback
+
+Change the cursor during drag:
+
+```tsx
+const [isDragging, setIsDragging] = useState(false)
+
+useZoomPinch({
+  containerRef,
+  onPanStart: () => setIsDragging(true),
+  onPanEnd: () => setIsDragging(false),
+})
+
+// In JSX
+<div ref={containerRef} style={{ cursor: isDragging ? "grabbing" : "grab" }}>
+```
+
+### Analytics
+
+Track gesture frequency:
+
+```tsx
+useZoomPinch({
+  containerRef,
+  onZoomStart: () => analytics.track("canvas_zoom"),
+  onPinchStart: () => analytics.track("canvas_pinch"),
+})
+```
+
+### Debounced save
+
+Save view state only when gestures finish:
+
+```tsx
+useZoomPinch({
+  containerRef,
+  viewState,
+  onViewStateChange: setViewState,
+  onPanEnd: (view) => saveToBackend(view),
+  onZoomEnd: (view) => saveToBackend(view),
+  onPinchEnd: (view) => saveToBackend(view),
+})
+```
+
+### UI overlays
+
+Hide toolbars during interaction:
+
+```tsx
+const [interacting, setInteracting] = useState(false)
+
+useZoomPinch({
+  containerRef,
+  onPanStart: () => setInteracting(true),
+  onPanEnd: () => setInteracting(false),
+  onPinchStart: () => setInteracting(true),
+  onPinchEnd: () => setInteracting(false),
+})
+
+// Fade out toolbar during gestures
+<div style={{ opacity: interacting ? 0.3 : 1, transition: "opacity 150ms" }}>
+  <Toolbar />
+</div>
+```
+
+## Zoom end debouncing
+
+`onZoomEnd` is debounced by **150ms** because trackpad zoom generates many rapid `wheel` events. The callback fires once, 150ms after the last zoom wheel event:
+
+```
+wheel (ctrlKey) → onZoomStart
+wheel (ctrlKey) → (reset timer)
+wheel (ctrlKey) → (reset timer)
+                   ... 150ms silence ...
+                 → onZoomEnd
+```
+
+<Aside type="note">
+  `onPanStart` fires on `pointerdown`, even if the user hasn't moved yet. If you need to detect
+  actual movement, compare the view in `onPanStart` and `onPanEnd`.
+</Aside>
+
+<Aside type="tip">
+  These callbacks use refs internally, so changing them between renders does **not** cause the
+  hook's `useEffect` to re-run. No performance penalty for inline arrow functions.
+</Aside>

@@ -1,0 +1,201 @@
+:root {
+  --sl-color-accent-low: #1e1b4b;
+  --sl-color-accent: #6366f1;
+  --sl-color-accent-high: #c7d2fe;
+  --sl-color-white: #ffffff;
+  --sl-color-gray-1: #eceef2;
+  --sl-color-gray-2: #c0c2c7;
+  --sl-color-gray-3: #888b96;
+  --sl-color-gray-4: #545861;
+  --sl-color-gray-5: #353841;
+  --sl-color-gray-6: #24272f;
+  --sl-color-black: #17181c;
+
+  /* Demo canvas — dark theme (default) */
+  --demo-toolbar-bg: #1e293b;
+  --demo-toolbar-border: #334155;
+  --demo-toolbar-text: #e2e8f0;
+  --demo-toolbar-label: #94a3b8;
+  --demo-toolbar-sep: #475569;
+  --demo-btn-bg: #334155;
+  --demo-btn-text: #e2e8f0;
+  --demo-btn-border: #475569;
+  --demo-canvas-bg: #0f172a;
+  --demo-grid-stroke: #1e3a5f;
+  --demo-grid-axis: #2d5a8a;
+  --demo-card-bg: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  --demo-card-text: #cbd5e1;
+  --demo-card-title: #e2e8f0;
+  --demo-kbd-bg: #0f172a;
+  --demo-info-text: #94a3b8;
+}
+
+:root[data-theme="light"] {
+  --sl-color-accent-low: #e0e7ff;
+  --sl-color-accent: #4f46e5;
+  --sl-color-accent-high: #312e81;
+  --sl-color-white: #17181c;
+  --sl-color-gray-1: #24272f;
+  --sl-color-gray-2: #353841;
+  --sl-color-gray-3: #545861;
+  --sl-color-gray-4: #888b96;
+  --sl-color-gray-5: #c0c2c7;
+  --sl-color-gray-6: #eceef2;
+  --sl-color-black: #ffffff;
+
+  /* Demo canvas — light theme */
+  --demo-toolbar-bg: #f1f5f9;
+  --demo-toolbar-border: #e2e8f0;
+  --demo-toolbar-text: #1e293b;
+  --demo-toolbar-label: #64748b;
+  --demo-toolbar-sep: #cbd5e1;
+  --demo-btn-bg: #e2e8f0;
+  --demo-btn-text: #334155;
+  --demo-btn-border: #cbd5e1;
+  --demo-canvas-bg: #f8fafc;
+  --demo-grid-stroke: #e2e8f0;
+  --demo-grid-axis: #94a3b8;
+  --demo-card-bg: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  --demo-card-text: #475569;
+  --demo-card-title: #1e293b;
+  --demo-kbd-bg: #cbd5e1;
+  --demo-info-text: #64748b;
+}
+
+/* Demo canvas component styles */
+.demo-wrapper {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--demo-toolbar-border);
+}
+
+.demo-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--demo-toolbar-bg);
+  border-bottom: 1px solid var(--demo-toolbar-border);
+  color: var(--demo-toolbar-text);
+  font-family: system-ui, sans-serif;
+  font-size: 13px;
+}
+
+.demo-toolbar-label {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--demo-toolbar-label);
+  white-space: nowrap;
+}
+
+.demo-toolbar-sep {
+  color: var(--demo-toolbar-sep);
+}
+
+.demo-btn {
+  background: var(--demo-btn-bg);
+  color: var(--demo-btn-text);
+  border: 1px solid var(--demo-btn-border);
+  border-radius: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: system-ui, sans-serif;
+  line-height: 1.4;
+  margin: 0;
+
+  @media (max-width: 640px) {
+    & .demo-btn-text {
+      display: none;
+    }
+  }
+}
+
+.demo-btn-group {
+  display: flex;
+
+  & > button {
+    border-radius: 0;
+    margin-right: -1px;
+
+    &:first-child {
+      border-top-left-radius: 6px;
+      border-bottom-left-radius: 6px;
+    }
+
+    &:last-child {
+      border-top-right-radius: 6px;
+      border-bottom-right-radius: 6px;
+    }
+  }
+}
+
+.demo-btn:hover {
+  opacity: 0.85;
+}
+
+.demo-info {
+  margin-left: auto;
+  color: var(--demo-info-text);
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.demo-canvas {
+  height: 480px;
+  overflow: hidden;
+  cursor: grab;
+  background: var(--demo-canvas-bg);
+  position: relative;
+  touch-action: none;
+  margin: 0;
+}
+
+.demo-canvas svg {
+  max-width: none;
+  overflow: visible;
+}
+
+.demo-grid-line {
+  stroke: var(--demo-grid-stroke);
+  stroke-width: 1;
+}
+
+.demo-grid-axis {
+  stroke: var(--demo-grid-axis);
+  stroke-width: 2;
+}
+
+.demo-card {
+  position: absolute;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  color: var(--demo-card-text);
+  font-family: system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 2;
+  padding: 16px 20px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+  user-select: none;
+  background: var(--demo-card-bg);
+}
+
+.demo-card-title {
+  font-weight: 700;
+  color: var(--demo-card-title);
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.demo-kbd {
+  background: var(--demo-kbd-bg);
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: ui-monospace, Consolas, monospace;
+  font-weight: 600;
+  padding: 0.2em 0.4em;
+}

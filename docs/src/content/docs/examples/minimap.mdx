@@ -1,0 +1,164 @@
+---
+title: Minimap Pattern
+description: Build a minimap overlay that shows the viewport position on a large canvas.
+---
+
+import { Aside, Tabs, TabItem } from "@astrojs/starlight/components"
+import CodePreview from "../../../components/CodePreview.astro"
+import MinimapDemo from "../../../components/examples/MinimapDemo.tsx"
+
+A minimap shows a bird's-eye view of the entire canvas with a viewport indicator. Since useZoomPinch gives you full access to `ViewState`, building a minimap is straightforward.
+
+<CodePreview title="Minimap with click-to-navigate">
+  <MinimapDemo client:visible slot="preview" />
+
+<Tabs>
+  <TabItem label="Canvas">
+```tsx
+import { useRef, useState } from "react"
+import { useZoomPinch, type ViewState } from "use-zoom-pinch"
+
+const CANVAS_SIZE = 2000
+const MINIMAP_SIZE = 150
+
+function CanvasWithMinimap() {
+const containerRef = useRef<HTMLDivElement>(null)
+const [viewState, setViewState] = useState<ViewState>({ x: 0, y: 0, zoom: 1 })
+
+const { view, panTo } = useZoomPinch({
+containerRef,
+viewState,
+onViewStateChange: setViewState,
+minScale: 0.2,
+maxScale: 5,
+})
+
+return (
+
+<div style={{ position: "relative", width: "100%", height: "100vh" }}>
+<div
+ref={containerRef}
+style={{
+          width: "100%",
+          height: "100%",
+          overflow: "hidden",
+          touchAction: "none",
+          cursor: "grab",
+        }} >
+<div
+style={{
+            transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})`,
+            transformOrigin: "0 0",
+            position: "absolute",
+          }} >
+<CanvasContent />
+</div>
+</div>
+
+      <Minimap view={view} onNavigate={panTo} containerRef={containerRef} />
+    </div>
+
+)
+}
+
+````
+  </TabItem>
+  <TabItem label="Minimap">
+```tsx
+interface MinimapProps {
+  view: ViewState
+  onNavigate: (x: number, y: number, options?: { animate?: boolean }) => void
+  containerRef: React.RefObject<HTMLDivElement | null>
+}
+
+function Minimap({ view, onNavigate, containerRef }: MinimapProps) {
+  const scale = MINIMAP_SIZE / CANVAS_SIZE
+
+  const container = containerRef.current
+  const cw = container?.offsetWidth ?? 800
+  const ch = container?.offsetHeight ?? 600
+
+  // Viewport rectangle in minimap coordinates
+  const vpLeft = (-view.x / view.zoom) * scale
+  const vpTop = (-view.y / view.zoom) * scale
+  const vpWidth = (cw / view.zoom) * scale
+  const vpHeight = (ch / view.zoom) * scale
+
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const canvasX = (e.clientX - rect.left) / scale
+    const canvasY = (e.clientY - rect.top) / scale
+    onNavigate(canvasX, canvasY, { animate: true })
+  }
+
+  return (
+    <div
+      onClick={handleClick}
+      style={{
+        position: "absolute",
+        bottom: 16,
+        right: 16,
+        width: MINIMAP_SIZE,
+        height: MINIMAP_SIZE,
+        background: "rgba(0, 0, 0, 0.8)",
+        borderRadius: 8,
+        overflow: "hidden",
+        cursor: "pointer",
+        border: "1px solid rgba(255, 255, 255, 0.2)",
+      }}
+    >
+      <div style={{ transform: `scale(${scale})`, transformOrigin: "0 0" }}>
+        <CanvasContent mini />
+      </div>
+
+      {/* Viewport indicator */}
+      <div
+        style={{
+          position: "absolute",
+          left: vpLeft,
+          top: vpTop,
+          width: vpWidth,
+          height: vpHeight,
+          border: "2px solid #6366f1",
+          borderRadius: 2,
+          background: "rgba(99, 102, 241, 0.1)",
+          pointerEvents: "none",
+        }}
+      />
+    </div>
+  )
+}
+````
+
+  </TabItem>
+  <TabItem label="Math">
+```
+Coordinate mapping between three spaces:
+
+Content space → Minimap space:
+minimapX = contentX \* (MINIMAP_SIZE / CANVAS_SIZE)
+
+Viewport rectangle in minimap:
+vpLeft = (-view.x / view.zoom) _ scale
+vpTop = (-view.y / view.zoom) _ scale
+vpWidth = (containerWidth / view.zoom) _ scale
+vpHeight = (containerHeight / view.zoom) _ scale
+
+Minimap click → panTo:
+canvasX = clickX / scale
+canvasY = clickY / scale
+panTo(canvasX, canvasY, { animate: true })
+
+```
+  </TabItem>
+</Tabs>
+</CodePreview>
+
+<Aside type="tip">
+  For large canvases, consider rendering a simplified version of content in the minimap (fewer details, no text) to keep it performant.
+</Aside>
+
+<Aside type="note">
+  This is a read-only minimap pattern. For a draggable viewport indicator (like in Figma), you'd add pointer event handlers to the viewport rectangle itself, tracking drag delta and converting it back to view state changes.
+</Aside>
+```

@@ -1,0 +1,129 @@
+---
+title: Animated Transitions
+description: Smooth easing for programmatic view changes with built-in animation support.
+---
+
+import { Aside } from "@astrojs/starlight/components"
+
+All programmatic methods (`setView`, `centerZoom`, `resetView`, `zoomIn`, `zoomOut`, `zoomToElement`) accept an optional `AnimationOptions` parameter for smooth transitions.
+
+## Basic usage
+
+```tsx
+const { setView, centerZoom, resetView, zoomIn, zoomOut } = useZoomPinch({
+  containerRef,
+})
+
+// Instant (default — backward-compatible)
+setView({ x: 100, y: 200, zoom: 2 })
+
+// Animated with default easing (easeOut, 300ms)
+setView({ x: 100, y: 200, zoom: 2 }, { animate: true })
+
+// Custom duration
+resetView({ animate: true, duration: 500 })
+
+// Custom easing
+import { easeInOut } from "use-zoom-pinch"
+centerZoom(2, { animate: true, duration: 400, easing: easeInOut })
+```
+
+## AnimationOptions
+
+| Property   | Type             | Default   | Description      |
+| ---------- | ---------------- | --------- | ---------------- |
+| `animate`  | `boolean`        | `false`   | Enable animation |
+| `duration` | `number`         | `300`     | Duration in ms   |
+| `easing`   | `EasingFunction` | `easeOut` | Easing curve     |
+
+## Built-in easings
+
+Three easing functions are exported:
+
+```tsx
+import { linear, easeOut, easeInOut } from "use-zoom-pinch"
+```
+
+| Function    | Curve                             | Best for             |
+| ----------- | --------------------------------- | -------------------- |
+| `linear`    | Constant speed                    | Progress indicators  |
+| `easeOut`   | Fast start, slow end (default)    | Most UI transitions  |
+| `easeInOut` | Slow start, fast middle, slow end | Emphasis transitions |
+
+### Custom easing
+
+Any function `(t: number) => number` where `t` goes from `0` to `1`:
+
+```tsx
+// Quadratic ease-in
+const easeIn = (t: number) => t * t
+
+setView(target, { animate: true, easing: easeIn })
+```
+
+## Gesture interruption
+
+Animations are automatically cancelled when the user starts a gesture (drag, scroll, pinch). This ensures gestures always feel responsive:
+
+```tsx
+// Start a long animation
+setView({ x: 1000, y: 0, zoom: 1 }, { animate: true, duration: 2000 })
+
+// If the user scrolls or drags during the animation,
+// the animation stops immediately at its current position
+// and the gesture takes over
+```
+
+## Animation chaining
+
+A new animation cancels any running animation:
+
+```tsx
+// First animation starts
+setView({ x: 100, y: 0, zoom: 1 }, { animate: true })
+
+// 100ms later — second animation cancels the first
+// and starts from current interpolated position
+setView({ x: -500, y: 0, zoom: 1 }, { animate: true })
+```
+
+<Aside type="tip">
+  For complex animation sequences, consider using the `easing` parameter to shape each step, rather
+  than chaining multiple `setView` calls.
+</Aside>
+
+## Common patterns
+
+### Zoom-to-fit on load
+
+```tsx
+useEffect(() => {
+  // Wait for content to render, then animate to fit
+  const timer = setTimeout(() => {
+    resetView({ animate: true, duration: 500 })
+  }, 100)
+  return () => clearTimeout(timer)
+}, [resetView])
+```
+
+### Toolbar buttons
+
+```tsx
+<button onClick={() => zoomIn(1.5, { animate: true })}>+</button>
+<button onClick={() => zoomOut(1.5, { animate: true })}>-</button>
+<button onClick={() => resetView({ animate: true })}>Reset</button>
+```
+
+### Keyboard shortcuts
+
+```tsx
+useEffect(() => {
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === "+" || e.key === "=") zoomIn(1.5, { animate: true })
+    if (e.key === "-") zoomOut(1.5, { animate: true })
+    if (e.key === "0") resetView({ animate: true })
+  }
+  window.addEventListener("keydown", handleKeyDown)
+  return () => window.removeEventListener("keydown", handleKeyDown)
+}, [zoomIn, zoomOut, resetView])
+```

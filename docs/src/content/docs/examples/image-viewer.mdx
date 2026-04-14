@@ -1,0 +1,164 @@
+---
+title: Image Viewer
+description: Build a zoomable image viewer with double-tap, reset, and zoom controls.
+---
+
+import { Aside, Tabs, TabItem } from "@astrojs/starlight/components"
+import CodePreview from "../../../components/CodePreview.astro"
+import ImageViewerDemo from "../../../components/examples/ImageViewerDemo.tsx"
+
+A common use case: a single image that users can zoom and pan to inspect details.
+
+<CodePreview title="Image Viewer">
+  <ImageViewerDemo client:visible slot="preview" />
+
+<Tabs>
+  <TabItem label="Viewer">
+```tsx
+import { useRef } from "react"
+import { useZoomPinch } from "use-zoom-pinch"
+
+function ImageViewer({ src, alt }: { src: string; alt: string }) {
+const containerRef = useRef<HTMLDivElement>(null)
+
+const { view, zoomIn, zoomOut, resetView } = useZoomPinch({
+containerRef,
+minScale: 0.5,
+maxScale: 10,
+doubleTap: { mode: "toggle", step: 3 },
+inertia: { friction: 0.95 },
+})
+
+return (
+
+<div style={{ position: "relative", width: "100%", height: "80vh" }}>
+<div
+style={{
+          position: "absolute",
+          bottom: 16,
+          right: 16,
+          zIndex: 10,
+          display: "flex",
+          gap: 4,
+        }} >
+<button onClick={() => zoomIn(1.5, { animate: true })}>+</button>
+<button onClick={() => zoomOut(1.5, { animate: true })}>-</button>
+<button onClick={() => resetView({ animate: true })}>Fit</button>
+<span>{Math.round(view.zoom \* 100)}%</span>
+</div>
+
+      <div
+        ref={containerRef}
+        style={{
+          width: "100%",
+          height: "100%",
+          overflow: "hidden",
+          touchAction: "none",
+          cursor: view.zoom > 1 ? "grab" : "zoom-in",
+          background: "#0f0f0f",
+        }}
+      >
+        <div
+          style={{
+            transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})`,
+            transformOrigin: "0 0",
+          }}
+        >
+          <img
+            src={src}
+            alt={alt}
+            draggable={false}
+            style={{ display: "block", maxWidth: "100%", userSelect: "none" }}
+          />
+        </div>
+      </div>
+    </div>
+
+)
+}
+
+````
+  </TabItem>
+  <TabItem label="Fit to Container">
+```tsx
+// Reset view centers at (0,0) zoom 1.
+// To fit the image to the container instead:
+const fitToContainer = () => {
+  const container = containerRef.current
+  const img = imgRef.current
+  if (!container || !img) return
+
+  const scale = Math.min(
+    container.offsetWidth / img.naturalWidth,
+    container.offsetHeight / img.naturalHeight,
+  )
+  const x = (container.offsetWidth - img.naturalWidth * scale) / 2
+  const y = (container.offsetHeight - img.naturalHeight * scale) / 2
+
+  setView({ x, y, zoom: scale }, { animate: true })
+}
+````
+
+  </TabItem>
+  <TabItem label="Gallery">
+```tsx
+function Gallery({ images }: { images: string[] }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [current, setCurrent] = useState(0)
+  const imgRefs = useRef<(HTMLImageElement | null)[]>([])
+
+const { view, zoomToElement } = useZoomPinch({
+containerRef,
+doubleTap: { mode: "toggle", step: 2 },
+})
+
+const goTo = (index: number) => {
+setCurrent(index)
+const el = imgRefs.current[index]
+if (el) zoomToElement(el, 1, { animate: true })
+}
+
+return (
+
+<div>
+<div style={{ display: "flex", gap: 4 }}>
+{images.map((\_, i) => (
+<button key={i} onClick={() => goTo(i)}>{i + 1}</button>
+))}
+</div>
+<div ref={containerRef} style={{ overflow: "hidden", touchAction: "none", height: "80vh" }}>
+<div
+style={{
+            transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})`,
+            transformOrigin: "0 0",
+            display: "flex",
+            gap: 32,
+          }} >
+{images.map((src, i) => (
+<img
+key={src}
+ref={(el) => { imgRefs.current[i] = el }}
+src={src}
+draggable={false}
+style={{ height: 600, userSelect: "none" }}
+/>
+))}
+</div>
+</div>
+</div>
+)
+}
+
+```
+  </TabItem>
+</Tabs>
+</CodePreview>
+
+<Aside type="tip">
+  Set `draggable={false}` on images to prevent the browser's native drag behavior from interfering with pan gestures.
+</Aside>
+
+<Aside type="note">
+  For production image viewers, consider lazy-loading images and rendering different resolution levels based on the current zoom — similar to how map tiles work.
+</Aside>
+```

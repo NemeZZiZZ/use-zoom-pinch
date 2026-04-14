@@ -1,0 +1,363 @@
+---
+title: API Reference
+description: Complete reference for useZoomPinch hook options and return values.
+---
+
+## `useZoomPinch(options)`
+
+The main hook. Attach it to a container element to enable pan, zoom, and pinch gestures.
+
+```tsx
+import { useZoomPinch } from "use-zoom-pinch"
+
+const result = useZoomPinch({
+  containerRef,
+  // ...options
+})
+```
+
+---
+
+## Options
+
+### Core
+
+| Option         | Type                             | Default    | Description                                               |
+| -------------- | -------------------------------- | ---------- | --------------------------------------------------------- |
+| `containerRef` | `RefObject<HTMLElement \| null>` | _required_ | Ref to the container element that receives gesture events |
+| `enabled`      | `boolean`                        | `true`     | Enable or disable all gesture handling                    |
+| `minScale`     | `number`                         | `0.1`      | Minimum allowed zoom level                                |
+| `maxScale`     | `number`                         | `50`       | Maximum allowed zoom level                                |
+| `panSpeed`     | `number`                         | `1`        | Multiplier for pan speed (mouse wheel only)               |
+| `zoomSpeed`    | `number`                         | `1`        | Multiplier for zoom speed (mouse wheel only)              |
+
+> **Trackpad detection:** The hook uses a heuristic (`deltaMode === 0` and fractional/small delta values) to distinguish trackpad from mouse wheel events. Mice with smooth scrolling (e.g. Logitech MX Master) may occasionally be misdetected as trackpad.
+
+### State management
+
+| Option              | Type                        | Default                   | Description                                                       |
+| ------------------- | --------------------------- | ------------------------- | ----------------------------------------------------------------- |
+| `initialViewState`  | `ViewState`                 | `{ x: 0, y: 0, zoom: 1 }` | Initial view for uncontrolled mode                                |
+| `viewState`         | `ViewState`                 | —                         | Controlled view state. When provided, the hook becomes controlled |
+| `onViewStateChange` | `(view: ViewState) => void` | —                         | Callback on every view change. Required for controlled mode       |
+
+### Gestures
+
+| Option              | Type                                                           | Default                                      | Description                                               |
+| ------------------- | -------------------------------------------------------------- | -------------------------------------------- | --------------------------------------------------------- |
+| `gestures`          | `GesturesOptions`                                              | `{ pan: true, zoom: true, rotate: false }`   | Toggle individual gesture types                           |
+| `panButton`         | `0 \| 1 \| 2`                                                  | `0`                                          | Mouse button for pan drag (0=left, 1=middle, 2=right)     |
+| `doubleTap`         | `DoubleTapOptions \| false`                                    | `{ enabled: true, mode: "toggle", step: 2 }` | Double-tap/click zoom config. Pass `false` to disable     |
+| `inertia`           | `InertiaOptions \| false`                                      | `{ enabled: true, friction: 0.92 }`          | Pan momentum config. Pass `false` to disable              |
+| `shouldHandleEvent` | `(event: PointerEvent \| WheelEvent \| TouchEvent) => boolean` | —                                            | Filter which events are handled. Return `false` to ignore |
+
+### Constraints & snapping
+
+| Option           | Type                         | Default | Description                                 |
+| ---------------- | ---------------------------- | ------- | ------------------------------------------- |
+| `bounds`         | `BoundsOptions`              | —       | Constrain panning within rectangular bounds |
+| `zoomSnapLevels` | `ZoomSnapLevel[]`            | —       | Zoom snaps to nearest level on gesture end  |
+| `snapToGrid`     | `SnapToGridOptions \| false` | `false` | Snap view position to a grid                |
+
+### Keyboard
+
+| Option     | Type                         | Default | Description                                   |
+| ---------- | ---------------------------- | ------- | --------------------------------------------- |
+| `keyboard` | `KeyboardOptions \| boolean` | `false` | Keyboard navigation. Pass `true` for defaults |
+
+> When keyboard is enabled, the hook automatically sets `tabindex="0"` on the container so it can receive focus. Key events are scoped to the focused container — multiple instances on a page work independently.
+
+### Content fitting
+
+| Option        | Type                                | Default | Description                                                                |
+| ------------- | ----------------------------------- | ------- | -------------------------------------------------------------------------- |
+| `contentRect` | `{ width: number; height: number }` | —       | Content dimensions for `fitToContent`. Triggers auto-fit on mount + resize |
+
+### Behavior
+
+| Option           | Type                     | Default | Description                                                          |
+| ---------------- | ------------------------ | ------- | -------------------------------------------------------------------- |
+| `rotation`       | `RotationOptions`        | —       | Min/max angle and snap levels for rotation                           |
+| `wheelMode`      | `"pan" \| "zoom"`        | `"pan"` | Default wheel behavior. `"zoom"` inverts: wheel zooms, ctrl pans     |
+| `cursor`         | `CursorOptions \| false` | enabled | Automatic cursor management (grab/grabbing). Pass `false` to disable |
+| `axis`           | `"x" \| "y"`             | —       | Restrict gestures to a single axis                                   |
+| `activationKeys` | `ActivationKeyOptions`   | —       | Require a key to be held for specific gesture types                  |
+
+### Event callbacks
+
+| Option           | Type                        | Description                                                           |
+| ---------------- | --------------------------- | --------------------------------------------------------------------- |
+| `onPanStart`     | `(view: ViewState) => void` | Fired when pointer drag starts                                        |
+| `onPanEnd`       | `(view: ViewState) => void` | Fired when pointer drag ends (all pointers released)                  |
+| `onZoomStart`    | `(view: ViewState) => void` | Fired on first ctrl+wheel event                                       |
+| `onZoomEnd`      | `(view: ViewState) => void` | Fired 150ms after last ctrl+wheel event (debounced)                   |
+| `onPinchStart`   | `(view: ViewState) => void` | Fired when multi-touch pinch begins                                   |
+| `onPinchEnd`     | `(view: ViewState) => void` | Fired when fingers reduce below 2                                     |
+| `onRotateStart`  | `(view: ViewState) => void` | Fired when rotation gesture begins (requires `gestures.rotate: true`) |
+| `onRotateEnd`    | `(view: ViewState) => void` | Fired when rotation gesture ends                                      |
+| `onTransformEnd` | `(view: ViewState) => void` | Fired after any gesture ends (pan, zoom, pinch, rotate)               |
+
+> **Note:** Event callbacks are only fired in response to user gestures, not imperative method calls (`setView`, `panTo`, etc.).
+
+---
+
+## Return value
+
+```tsx
+const {
+  view,
+  isAnimating,
+  setView,
+  centerZoom,
+  resetView,
+  zoomIn,
+  zoomOut,
+  zoomToElement,
+  panTo,
+  panBy,
+  zoomTo,
+  fitToRect,
+  rotateTo,
+  rotateBy,
+  screenToContent,
+  contentToScreen,
+  fitToContent,
+  snapZoom,
+} = useZoomPinch({ containerRef })
+```
+
+### `view`
+
+**Type:** `ViewState`
+
+Current view state. In uncontrolled mode, this is the hook's internal state. In controlled mode, this is the `viewState` prop you passed in.
+
+```tsx
+const { view } = useZoomPinch({ containerRef })
+// view.x, view.y, view.zoom, view.rotation
+```
+
+### `isAnimating`
+
+**Type:** `boolean`
+
+Whether an animation is currently running. Useful for disabling UI or showing loading states during transitions.
+
+```tsx
+const { isAnimating } = useZoomPinch({ containerRef })
+// true during animated transitions, false otherwise
+```
+
+### `setView(view, options?)`
+
+**Type:** `(view: ViewState, options?: AnimationOptions) => void`
+
+Imperatively set the view to an exact state.
+
+```tsx
+// Instant
+setView({ x: 100, y: 200, zoom: 2 })
+
+// Animated
+setView({ x: 100, y: 200, zoom: 2 }, { animate: true, duration: 500 })
+```
+
+### `centerZoom(targetZoom, options?)`
+
+**Type:** `(targetZoom: number, options?: AnimationOptions) => void`
+
+Zoom to a target level, keeping the **container center** as the anchor point. The zoom is clamped to `[minScale, maxScale]`.
+
+```tsx
+// Zoom to 200%, centered
+centerZoom(2, { animate: true })
+```
+
+### `resetView(options?)`
+
+**Type:** `(options?: AnimationOptions) => void`
+
+Reset to the default view `{ x: 0, y: 0, zoom: 1 }`.
+
+```tsx
+resetView({ animate: true })
+```
+
+### `zoomIn(step?, options?)`
+
+**Type:** `(step?: number, options?: AnimationOptions) => void`
+
+Zoom in by a multiplicative step, centered on the container. Default step is `1.5`.
+
+```tsx
+zoomIn() // zoom *= 1.5
+zoomIn(2) // zoom *= 2
+zoomIn(1.5, { animate: true }) // animated
+```
+
+### `zoomOut(step?, options?)`
+
+**Type:** `(step?: number, options?: AnimationOptions) => void`
+
+Zoom out by a multiplicative step, centered on the container. Default step is `1.5`.
+
+```tsx
+zoomOut() // zoom /= 1.5
+zoomOut(2) // zoom /= 2
+zoomOut(1.5, { animate: true }) // animated
+```
+
+### `zoomToElement(el, scale?, options?)`
+
+**Type:** `(el: HTMLElement, scale?: number, options?: AnimationOptions) => void`
+
+Pan and zoom to center a specific element in the viewport. If `scale` is omitted, the current zoom level is preserved.
+
+```tsx
+const el = document.getElementById("my-element")!
+zoomToElement(el, 2, { animate: true }) // center and zoom to 2x
+zoomToElement(el) // center at current zoom
+```
+
+### `panTo(x, y, options?)`
+
+**Type:** `(x: number, y: number, options?: AnimationOptions) => void`
+
+Pan to center a content-space point in the viewport. The current zoom level is preserved.
+
+```tsx
+// Center viewport on point (500, 300) in content space
+panTo(500, 300, { animate: true })
+```
+
+### `panBy(dx, dy, options?)`
+
+**Type:** `(dx: number, dy: number, options?: AnimationOptions) => void`
+
+Pan by a relative delta in screen pixels. Positive `dx` moves content right.
+
+```tsx
+// Shift view 100px right, 50px down
+panBy(100, 50, { animate: true })
+```
+
+### `zoomTo(zoom, point?, options?)`
+
+**Type:** `(zoom: number, point?: { x: number; y: number }, options?: AnimationOptions) => void`
+
+Zoom to a specific level. Without `point`, zooms centered on the container (same as `centerZoom`). With `point`, zooms centered on a content-space coordinate.
+
+```tsx
+// Zoom to 3x, centered on container
+zoomTo(3, undefined, { animate: true })
+
+// Zoom to 2x, centered on point (100, 200) in content space
+zoomTo(2, { x: 100, y: 200 }, { animate: true })
+```
+
+### `fitToRect(rect, options?)`
+
+**Type:** `(rect: { x: number; y: number; width: number; height: number }, options?: AnimationOptions & { padding?: number }) => void`
+
+Fit a content-space rectangle into the viewport. Calculates the optimal zoom level and centers the rectangle. The optional `padding` (in px) adds inset from the container edges.
+
+```tsx
+// Fit a 400x300 region starting at (100, 50)
+fitToRect({ x: 100, y: 50, width: 400, height: 300 }, { animate: true })
+
+// With 20px padding from edges
+fitToRect({ x: 0, y: 0, width: 800, height: 600 }, { animate: true, padding: 20 })
+```
+
+### `rotateTo(angle, options?)`
+
+**Type:** `(angle: number, options?: AnimationOptions) => void`
+
+Set the rotation to an absolute angle in degrees.
+
+```tsx
+rotateTo(45, { animate: true }) // rotate to 45°
+rotateTo(0, { animate: true }) // reset rotation
+```
+
+### `rotateBy(delta, options?)`
+
+**Type:** `(delta: number, options?: AnimationOptions) => void`
+
+Rotate by a relative delta in degrees. Positive values rotate clockwise.
+
+```tsx
+rotateBy(90, { animate: true }) // rotate 90° clockwise
+rotateBy(-45, { animate: true }) // rotate 45° counter-clockwise
+```
+
+### `screenToContent(screenX, screenY)`
+
+**Type:** `(screenX: number, screenY: number) => { x: number; y: number }`
+
+Convert screen-space coordinates to content-space. Useful for mapping click positions to content coordinates.
+
+```tsx
+const contentPos = screenToContent(event.clientX, event.clientY)
+```
+
+### `contentToScreen(contentX, contentY)`
+
+**Type:** `(contentX: number, contentY: number) => { x: number; y: number }`
+
+Convert content-space coordinates to screen-space. Useful for overlays and tooltips.
+
+```tsx
+const screenPos = contentToScreen(100, 200)
+```
+
+### `fitToContent(options?)`
+
+**Type:** `(options?: AnimationOptions & { padding?: number }) => void`
+
+Fit the content into the container. Requires the `contentRect` option. Automatically called on mount and container resize when `contentRect` is provided.
+
+```tsx
+fitToContent({ animate: true, padding: 20 })
+```
+
+### `snapZoom(options?)`
+
+**Type:** `(options?: AnimationOptions) => void`
+
+Snap the current zoom to the nearest level from `zoomSnapLevels`.
+
+```tsx
+snapZoom({ animate: true })
+```
+
+---
+
+## Exports
+
+```tsx
+// Hook
+export { useZoomPinch } from "use-zoom-pinch"
+
+// Easing functions
+export { linear, easeOut, easeInOut } from "use-zoom-pinch"
+
+// Types
+export type {
+  ViewState,
+  UseZoomPinchOptions,
+  UseZoomPinchReturn,
+  AnimationOptions,
+  EasingFunction,
+  DoubleTapOptions,
+  InertiaOptions,
+  GesturesOptions,
+  BoundsOptions,
+  KeyboardOptions,
+  SnapToGridOptions,
+  ZoomSnapLevel,
+  RotationOptions,
+  CursorOptions,
+  ActivationKeyOptions,
+} from "use-zoom-pinch"
+```

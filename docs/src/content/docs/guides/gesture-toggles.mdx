@@ -1,0 +1,125 @@
+---
+title: Gesture Toggles
+description: Enable or disable pan, zoom, and rotate gestures independently.
+---
+
+import { Aside } from "@astrojs/starlight/components"
+
+The `gestures` option lets you toggle individual gesture types on or off. This is useful when you need only a subset of interactions — for example, a read-only map that zooms but doesn't pan, or an image rotation tool.
+
+## Default behavior
+
+```tsx
+// Equivalent to:
+useZoomPinch({
+  containerRef,
+  gestures: { pan: true, zoom: true, rotate: false },
+})
+```
+
+Pan and zoom are enabled by default. Rotation is disabled.
+
+## Toggle examples
+
+### Zoom only (no pan)
+
+```tsx
+useZoomPinch({
+  containerRef,
+  gestures: { pan: false },
+})
+```
+
+### Pan only (no zoom)
+
+```tsx
+useZoomPinch({
+  containerRef,
+  gestures: { zoom: false },
+})
+```
+
+### Rotate only
+
+```tsx
+useZoomPinch({
+  containerRef,
+  gestures: { pan: false, zoom: false, rotate: true },
+})
+```
+
+### All gestures
+
+```tsx
+useZoomPinch({
+  containerRef,
+  gestures: { rotate: true },
+})
+```
+
+## What each toggle controls
+
+| Toggle   | Gesture inputs affected                                      |
+| -------- | ------------------------------------------------------------ |
+| `pan`    | Mouse wheel scroll, trackpad two-finger scroll, pointer drag |
+| `zoom`   | Ctrl+wheel, trackpad pinch, multi-touch pinch distance       |
+| `rotate` | Multi-touch pinch angle (two-finger twist)                   |
+
+## Imperative methods are not affected
+
+Gesture toggles only control **user input**. Programmatic methods always work:
+
+```tsx
+const { panTo, zoomIn, rotateTo } = useZoomPinch({
+  containerRef,
+  gestures: { pan: false, zoom: false, rotate: false },
+})
+
+// All of these still work:
+panTo(100, 200, { animate: true })
+zoomIn(2, { animate: true })
+rotateTo(45, { animate: true })
+```
+
+<Aside type="tip">
+  This makes it easy to build UIs where gestures are disabled but toolbar buttons still control the
+  view.
+</Aside>
+
+## Difference from `enabled`
+
+- `enabled: false` — disables **all** gesture handling (master switch)
+- `gestures: { pan: false }` — disables only pan gestures, zoom still works
+
+```tsx
+// Nothing works — no gestures at all
+useZoomPinch({ containerRef, enabled: false })
+
+// Zoom works, pan doesn't
+useZoomPinch({ containerRef, gestures: { pan: false } })
+```
+
+<Aside type="note">
+  `enabled` takes priority. If `enabled` is `false`, individual gesture toggles have no effect.
+</Aside>
+
+## Dynamic toggling
+
+Since `gestures` is a regular prop, you can toggle gestures at runtime:
+
+```tsx
+const [mode, setMode] = useState<"pan" | "rotate">("pan")
+
+useZoomPinch({
+  containerRef,
+  gestures: {
+    pan: mode === "pan",
+    rotate: mode === "rotate",
+  },
+})
+
+// Toggle between modes
+<button onClick={() => setMode(mode === "pan" ? "rotate" : "pan")}>
+  Switch to {mode === "pan" ? "Rotate" : "Pan"} mode
+</button>
+```

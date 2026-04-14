@@ -1,0 +1,112 @@
+---
+title: Getting Started
+description: Install and set up useZoomPinch in your React project.
+---
+
+import { Steps, Tabs, TabItem, Aside } from "@astrojs/starlight/components"
+
+## Installation
+
+<Tabs>
+  <TabItem label="npm">```bash npm install use-zoom-pinch ```</TabItem>
+  <TabItem label="pnpm">```bash pnpm add use-zoom-pinch ```</TabItem>
+  <TabItem label="yarn">```bash yarn add use-zoom-pinch ```</TabItem>
+  <TabItem label="bun">```bash bun add use-zoom-pinch ```</TabItem>
+</Tabs>
+
+**Requirements:** React 18+ (peer dependency).
+
+## Basic Usage
+
+<Steps>
+
+1. **Create a container ref** — this is the element that will receive gesture events.
+
+2. **Call the hook** — pass the ref and destructure `view`.
+
+3. **Apply the transform** — use `view.x`, `view.y`, and `view.zoom` to style your content.
+
+</Steps>
+
+```tsx
+import { useRef } from "react"
+import { useZoomPinch } from "use-zoom-pinch"
+
+function Canvas() {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const { view } = useZoomPinch({ containerRef })
+
+  return (
+    <div
+      ref={containerRef}
+      style={{
+        width: "100%",
+        height: "100vh",
+        overflow: "hidden",
+        touchAction: "none",
+      }}
+    >
+      <div
+        style={{
+          transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})`,
+          transformOrigin: "0 0",
+        }}
+      >
+        <h1>Hello, zoomable world!</h1>
+      </div>
+    </div>
+  )
+}
+```
+
+<Aside type="tip">
+  Always set `touchAction: "none"` on the container to prevent the browser from handling touch
+  gestures (scroll, pinch-to-zoom) natively.
+</Aside>
+
+## What works out of the box
+
+With zero configuration, you get:
+
+- **Mouse wheel** — scroll to pan vertically/horizontally
+- **Trackpad** — two-finger scroll to pan, pinch to zoom
+- **Ctrl + Scroll** — zoom at cursor position
+- **Pointer drag** — click and drag to pan (left button only)
+- **Touch drag** — single finger to pan
+- **Multi-touch pinch** — two fingers to zoom on mobile
+- **Double-tap** — toggle zoom at tap point
+- **Inertia** — momentum-based pan after releasing pointer
+
+## Understanding `transformOrigin: "0 0"`
+
+The hook uses a coordinate system where the origin is the **top-left corner** of the content. This is critical for the math to work correctly:
+
+```
+Container (visible viewport)
++---------------------------+
+|  Content origin (0,0)     |
+|  ·                        |
+|      Visible area         |
+|                           |
++---------------------------+
+
+After panning (view.x = 100, view.y = 50):
++---------------------------+
+|                           |
+|     · Origin (now at 100, 50 in container space)
+|         Visible area      |
+|                           |
++---------------------------+
+```
+
+The `view` object represents:
+
+- `view.x` — horizontal offset of content origin from container's top-left (pixels)
+- `view.y` — vertical offset of content origin from container's top-left (pixels)
+- `view.zoom` — scale factor (`1` = 100%, `2` = 200%, etc.)
+
+## Next steps
+
+- [Controlled Mode](/use-zoom-pinch/guides/controlled-mode/) — sync view state with React state
+- [Animated Transitions](/use-zoom-pinch/guides/animated-transitions/) — smooth programmatic zoom and pan
+- [API Reference](/use-zoom-pinch/reference/api/) — complete options and return values

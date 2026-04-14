@@ -1,0 +1,133 @@
+---
+title: Rotation
+description: Add two-finger rotation to your canvas with gesture detection and programmatic control.
+---
+
+import { Aside } from "@astrojs/starlight/components"
+
+useZoomPinch supports rotation via two-finger twist gestures and programmatic methods. Rotation is disabled by default — opt in via the `gestures` option.
+
+## Enable rotation
+
+```tsx
+const { view, rotateTo, rotateBy } = useZoomPinch({
+  containerRef,
+  gestures: { rotate: true },
+})
+```
+
+## Apply rotation in CSS
+
+Add `rotate()` to your existing transform:
+
+```tsx
+<div
+  style={{
+    transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom}) rotate(${view.rotation ?? 0}deg)`,
+    transformOrigin: "0 0",
+  }}
+>
+  {/* Your content */}
+</div>
+```
+
+<Aside type="tip">
+  The `rotation` field on `ViewState` is optional and defaults to `0`. Use `view.rotation ?? 0` for
+  safe access.
+</Aside>
+
+## Gesture detection
+
+When `gestures.rotate` is `true`, two-finger touch gestures detect both distance change (zoom) and angle change (rotation) simultaneously. The angle between touch points is tracked from `touchstart` through `touchmove`.
+
+You can enable rotation alongside zoom (default) or independently:
+
+```tsx
+// Both zoom and rotate during pinch
+useZoomPinch({ containerRef, gestures: { rotate: true } })
+
+// Rotate only — no zoom during pinch
+useZoomPinch({ containerRef, gestures: { zoom: false, rotate: true } })
+```
+
+## Programmatic rotation
+
+### `rotateTo(angle, options?)`
+
+Set rotation to an absolute angle in degrees:
+
+```tsx
+rotateTo(0) // reset rotation instantly
+rotateTo(90, { animate: true }) // rotate to 90° with animation
+rotateTo(-45, { animate: true, duration: 500 })
+```
+
+### `rotateBy(delta, options?)`
+
+Rotate by a relative delta. Positive values rotate clockwise:
+
+```tsx
+rotateBy(90, { animate: true }) // rotate 90° clockwise
+rotateBy(-45, { animate: true }) // rotate 45° counter-clockwise
+```
+
+## Rotation events
+
+Subscribe to rotation lifecycle:
+
+```tsx
+useZoomPinch({
+  containerRef,
+  gestures: { rotate: true },
+  onRotateStart: (view) => console.log("Rotation started", view.rotation),
+  onRotateEnd: (view) => console.log("Rotation ended", view.rotation),
+})
+```
+
+<Aside type="note">
+  `onRotateStart` and `onRotateEnd` only fire when `gestures.rotate` is `true`. They fire alongside
+  `onPinchStart`/`onPinchEnd` during two-finger gestures.
+</Aside>
+
+## Reset includes rotation
+
+`resetView()` resets rotation to `0` along with position and zoom:
+
+```tsx
+// Resets to { x: 0, y: 0, zoom: 1, rotation: 0 }
+resetView({ animate: true })
+```
+
+## Example: rotation toolbar
+
+```tsx
+function RotatableCanvas() {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const { view, rotateBy, resetView } = useZoomPinch({
+    containerRef,
+    gestures: { rotate: true },
+  })
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 8 }}>
+        <button onClick={() => rotateBy(-90, { animate: true })}>↺ 90°</button>
+        <button onClick={() => rotateBy(90, { animate: true })}>↻ 90°</button>
+        <button onClick={() => resetView({ animate: true })}>Reset</button>
+        <span>{Math.round(view.rotation ?? 0)}°</span>
+      </div>
+
+      <div ref={containerRef} style={{ overflow: "hidden", touchAction: "none" }}>
+        <div
+          style={{
+            transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom}) rotate(${view.rotation ?? 0}deg)`,
+            transformOrigin: "0 0",
+          }}
+        >
+          {/* Your content */}
+        </div>
+      </div>
+    </div>
+  )
+}
+```

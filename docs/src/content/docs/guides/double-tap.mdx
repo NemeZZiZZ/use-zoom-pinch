@@ -1,0 +1,98 @@
+---
+title: Double-Tap Zoom
+description: Configure double-tap and double-click zoom behavior.
+---
+
+import { Aside } from "@astrojs/starlight/components"
+
+Double-tap (touch) and double-click (mouse) zoom is **enabled by default** in `toggle` mode. The gesture zooms to the exact point where the user tapped.
+
+## Default behavior
+
+Without any configuration, double-tap:
+
+- **Zooms in 2x** to the tap point if at 1x zoom
+- **Resets to 1x** if already zoomed in
+
+```tsx
+// Double-tap works out of the box
+const { view } = useZoomPinch({ containerRef })
+```
+
+## Configuration
+
+Pass a `doubleTap` object to customize:
+
+```tsx
+useZoomPinch({
+  containerRef,
+  doubleTap: {
+    mode: "zoomIn", // always zoom in (never reset)
+    step: 3, // zoom by 3x instead of 2x
+  },
+})
+```
+
+### Options
+
+| Property  | Type                              | Default    | Description               |
+| --------- | --------------------------------- | ---------- | ------------------------- |
+| `enabled` | `boolean`                         | `true`     | Enable/disable double-tap |
+| `mode`    | `"toggle" \| "zoomIn" \| "reset"` | `"toggle"` | Behavior on double-tap    |
+| `step`    | `number`                          | `2`        | Zoom multiplier           |
+
+### Modes
+
+**`"toggle"` (default)** — Smart toggle. If zoom is close to 1x, zooms in by `step`. If already zoomed, resets to `{ x: 0, y: 0, zoom: 1 }`.
+
+```tsx
+doubleTap: {
+  mode: "toggle"
+} // or just omit doubleTap entirely
+```
+
+**`"zoomIn"`** — Always zooms in by `step`, anchored to the tap point. Useful for progressive zoom (tap, tap, tap to keep zooming).
+
+```tsx
+doubleTap: { mode: "zoomIn", step: 2 }
+```
+
+**`"reset"`** — Always resets to the default view regardless of current zoom level.
+
+```tsx
+doubleTap: {
+  mode: "reset"
+}
+```
+
+## Disabling
+
+Two ways to disable:
+
+```tsx
+// Option 1: pass false
+useZoomPinch({ containerRef, doubleTap: false })
+
+// Option 2: enabled flag
+useZoomPinch({ containerRef, doubleTap: { enabled: false } })
+```
+
+## How it works
+
+The hook tracks `pointerup` events and detects double-taps when:
+
+1. Two taps happen within **300ms** of each other
+2. The taps are within **25px** of each other
+3. The pointer **did not move** between `pointerdown` and `pointerup` (not a drag)
+
+The zoom animation uses `easeOut` over 300ms, anchored to the tap point (not the container center).
+
+<Aside type="note">
+  Double-tap detection uses pointer events, so it works for both touch and mouse. A "double-click"
+  and a "double-tap" are the same gesture from the hook's perspective.
+</Aside>
+
+<Aside type="tip">
+  Double-tap is automatically suppressed during drag gestures. If the user drags even a single
+  pixel, the tap is not counted toward a double-tap sequence.
+</Aside>

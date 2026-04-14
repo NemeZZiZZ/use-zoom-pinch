@@ -1,0 +1,81 @@
+---
+title: useZoomPinch
+description: Lightweight React hook for pan, pinch-to-zoom, and scroll zoom. ~5.2 KB gzipped, zero dependencies.
+template: splash
+hero:
+  tagline: Lightweight React hook for pan, pinch-to-zoom, and scroll zoom. Zero dependencies. ~5.2 KB gzipped.
+  actions:
+    - text: Get Started
+      link: /use-zoom-pinch/getting-started/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/NemeZZiZZ/use-zoom-pinch
+      icon: external
+---
+
+import { Card, CardGrid } from "@astrojs/starlight/components"
+import DemoCanvas from "../../components/DemoCanvas.tsx"
+
+## Try it
+
+<DemoCanvas client:visible />
+
+## Why useZoomPinch?
+
+<CardGrid>
+  <Card title="5.2 KB gzipped" icon="rocket">
+    3-9x lighter than alternatives. No bloat, no unnecessary abstractions.
+  </Card>
+  <Card title="Hook-first" icon="puzzle">
+    No wrapper components, no Context, no extra DOM nodes. Attach to any ref.
+  </Card>
+  <Card title="Controlled mode" icon="setting">
+    Native `viewState` + `onViewStateChange` — like a controlled input. No other zoom library offers
+    this.
+  </Card>
+  <Card title="Full gesture support" icon="approve-check">
+    Scroll, drag, pinch, trackpad, double-tap, inertia — all out of the box.
+  </Card>
+</CardGrid>
+
+## Quick look
+
+```tsx
+import { useRef } from "react"
+import { useZoomPinch } from "use-zoom-pinch"
+
+function Canvas() {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const { view } = useZoomPinch({ containerRef })
+
+  return (
+    <div ref={containerRef} style={{ overflow: "hidden", touchAction: "none" }}>
+      <div
+        style={{
+          transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})`,
+          transformOrigin: "0 0",
+        }}
+      >
+        {/* Your zoomable content */}
+      </div>
+    </div>
+  )
+}
+```
+
+## Comparison
+
+| Feature               | useZoomPinch | react-zoom-pan-pinch | @use-gesture/react | motion/react        |
+| --------------------- | ------------ | -------------------- | ------------------ | ------------------- |
+| Size (min+gzip)       | **~5.2 KB**  | ~13.2 KB             | ~8.9 KB            | ~41.6 KB            |
+| Approach              | Hook         | Components + hook    | Gesture primitives | Animation + gesture |
+| Controlled mode       | ✅ Native    | ❌                   | ❌                 | ❌                  |
+| DOM wrappers          | ✅ None      | +2 divs              | ✅ None            | +1 div              |
+| Bounds / constraints  | ✅           | ✅                   | 🔧 Manual          | 🔧 dragConstraints  |
+| Keyboard navigation   | ✅           | ❌                   | ❌                 | ❌                  |
+| Coordinate conversion | ✅           | ❌                   | ❌                 | ❌                  |
+| Snap to grid          | ✅           | ❌                   | ❌                 | ❌                  |
+| Zoom snap levels      | ✅           | ❌                   | ❌                 | ❌                  |
+| Rotation gestures     | ✅           | ❌                   | 🔧 Manual          | ❌                  |
+| Ready-to-use zoom/pan | ✅           | ✅                   | 🔧 Manual          | 🔧 Manual           |

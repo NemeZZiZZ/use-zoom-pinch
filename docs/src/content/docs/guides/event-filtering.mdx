@@ -1,0 +1,104 @@
+---
+title: Event Filtering
+description: Control which events the hook handles using shouldHandleEvent.
+---
+
+import { Aside } from "@astrojs/starlight/components"
+
+The `shouldHandleEvent` callback lets you selectively ignore gestures based on the event target, modifier keys, or any other condition.
+
+## The problem
+
+When you put interactive elements (buttons, inputs, sliders) inside the zoomable container, pointer events on those elements also trigger panning:
+
+```tsx
+<div ref={containerRef}>
+  <div style={{ transform: ... }}>
+    {/* Clicking this button also starts a pan gesture */}
+    <button onClick={handleSave}>Save</button>
+  </div>
+</div>
+```
+
+## The solution
+
+```tsx
+useZoomPinch({
+  containerRef,
+  shouldHandleEvent: (e) => {
+    return !(e.target as HTMLElement).closest(".no-pan")
+  },
+})
+```
+
+Then mark interactive elements:
+
+```tsx
+<button className="no-pan" onClick={handleSave}>Save</button>
+<input className="no-pan" type="text" />
+```
+
+<Aside type="tip">
+  Unlike CSS-class-based exclusion in other libraries, `shouldHandleEvent` is a function — you can
+  use any logic, not just class names.
+</Aside>
+
+## Examples
+
+### Exclude by element type
+
+```tsx
+shouldHandleEvent: (e) => {
+  const tag = (e.target as HTMLElement).tagName
+  return !["BUTTON", "INPUT", "TEXTAREA", "SELECT", "A"].includes(tag)
+}
+```
+
+### Exclude by data attribute
+
+```tsx
+shouldHandleEvent: (e) => {
+  return !(e.target as HTMLElement).closest("[data-no-pan]")
+}
+```
+
+```tsx
+<button data-no-pan onClick={handleSave}>
+  Save
+</button>
+```
+
+### Require modifier key for zoom
+
+```tsx
+shouldHandleEvent: (e) => {
+  // Only handle wheel events if Ctrl is held
+  if (e instanceof WheelEvent) return e.ctrlKey
+  return true
+}
+```
+
+### Exclude a specific region
+
+```tsx
+shouldHandleEvent: (e) => {
+  // Don't handle events in the toolbar area
+  return !(e.target as HTMLElement).closest("#toolbar")
+}
+```
+
+## How it works
+
+`shouldHandleEvent` is checked **before** `preventDefault()` in every handler:
+
+- `wheel` — checked before pan/zoom processing
+- `pointerdown` — checked before drag starts
+- `touchstart` / `touchmove` — checked before pinch processing
+
+If it returns `false`, the event is completely ignored — as if `enabled` were `false` for that single event.
+
+<Aside type="caution">
+  The callback receives the **raw browser event** (`WheelEvent`, `PointerEvent`, or `TouchEvent`).
+  The `e.target` is the actual DOM element that received the event, which may be a child of your
+  container.
+</Aside>

@@ -1,0 +1,82 @@
+---
+title: Inertia
+description: Momentum-based panning with configurable friction.
+---
+
+import { Aside } from "@astrojs/starlight/components"
+
+Inertia gives pan gestures a natural momentum feel — after the user releases their finger or mouse, the canvas continues to glide and gradually decelerates. **Enabled by default.**
+
+## Default behavior
+
+```tsx
+// Inertia works out of the box (friction: 0.92)
+const { view } = useZoomPinch({ containerRef })
+```
+
+After a fast drag-and-release, the view continues moving with exponential decay. The velocity is smoothed over the last few pointer move events to avoid sudden jumps.
+
+## Configuration
+
+```tsx
+useZoomPinch({
+  containerRef,
+  inertia: {
+    friction: 0.85, // lower = more friction = stops faster
+  },
+})
+```
+
+### Options
+
+| Property   | Type      | Default | Description                  |
+| ---------- | --------- | ------- | ---------------------------- |
+| `enabled`  | `boolean` | `true`  | Enable/disable inertia       |
+| `friction` | `number`  | `0.92`  | Decay factor per frame (0-1) |
+
+### Friction values
+
+The `friction` value is multiplied against the velocity on each animation frame (~60fps):
+
+| Friction | Feel              | Use case                      |
+| -------- | ----------------- | ----------------------------- |
+| `0.98`   | Very slippery     | Large canvases, map-like feel |
+| `0.95`   | Smooth glide      | Image viewers                 |
+| `0.92`   | Natural (default) | General purpose               |
+| `0.85`   | Quick stop        | Precision interfaces          |
+| `0.7`    | Very heavy        | When you want minimal drift   |
+
+## Disabling
+
+```tsx
+// Option 1: pass false
+useZoomPinch({ containerRef, inertia: false })
+
+// Option 2: enabled flag
+useZoomPinch({ containerRef, inertia: { enabled: false } })
+```
+
+## How it works
+
+1. During a drag, the hook tracks pointer velocity using exponential smoothing (weighted average of recent movements).
+2. On `pointerup`, if the velocity is above a minimum threshold (0.5 px/frame), an animation frame loop starts.
+3. Each frame: `velocity *= friction`. The view is updated by the decayed velocity.
+4. When velocity drops below 0.5 px/frame, the loop stops.
+
+### Interruption
+
+Inertia is cancelled immediately when:
+
+- The user starts a **new gesture** (drag, scroll, pinch)
+- A **programmatic method** is called (`setView`, `zoomIn`, etc.)
+- A **double-tap** is detected
+
+<Aside type="note">
+  Inertia only applies to **pan gestures** (pointer drag). It does not affect scroll-wheel panning
+  or pinch zoom — those gestures have their own native momentum on trackpads.
+</Aside>
+
+<Aside type="tip">
+  For the most natural feel, test inertia on a real touch device. Desktop mouse drag tends to have
+  less velocity than finger swipes, so the effect is subtler with a mouse.
+</Aside>
