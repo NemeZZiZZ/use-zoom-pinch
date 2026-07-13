@@ -1,4 +1,5 @@
 export { useZoomPinch } from "./useZoomPinch"
+export { clamp, distance, angleBetween } from "./useZoomPinch"
 export { linear, easeOut, easeInOut } from "./easings"
 export type {
   ViewState,

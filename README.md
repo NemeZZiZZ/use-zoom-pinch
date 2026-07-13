@@ -7,6 +7,7 @@ Lightweight React hook for **pan**, **pinch-to-zoom**, **rotation**, and **scrol
 [![bundle size](https://img.shields.io/bundlephobia/minzip/use-zoom-pinch)](https://bundlephobia.com/package/use-zoom-pinch)
 
 [**Live Demo**](https://nemezzizz.github.io/use-zoom-pinch/)
+[**Changelog**](./CHANGELOG.md)
 
 ## Features
 
@@ -39,7 +40,7 @@ Lightweight React hook for **pan**, **pinch-to-zoom**, **rotation**, and **scrol
 - **Stable listeners** — config changes don't re-register event listeners
 - **TypeScript-first** with full type exports
 - **Tree-shakeable** ESM + CJS dual build
-- **~5.2 KB** minified + gzipped
+- **~5.8 KB** minified + gzipped
 
 ## Installation
 
@@ -141,6 +142,9 @@ setView({ x: 100, y: 200, zoom: 2 })
 // Animated
 setView({ x: 100, y: 200, zoom: 2 }, { animate: true, duration: 300 })
 
+// Skip bounds/axis/snap constraints (precise positioning even outside bounds)
+setView({ x: 1000, y: 1000, zoom: 2 }, { skipConstraints: true })
+
 // With custom easing
 import { easeInOut } from "use-zoom-pinch"
 resetView({ animate: true, duration: 500, easing: easeInOut })
@@ -156,6 +160,26 @@ zoomToElement(elRef.current!, 2, { animate: true })
 - `easeOut` — fast start, slow end (default)
 - `easeInOut` — slow start, fast middle, slow end
 
+### Skipping Constraints
+
+`setView` normally applies bounds clamping, axis locking, and snap-to-grid. Pass `skipConstraints: true` to bypass them when you need precise programmatic positioning (even outside bounds):
+
+```tsx
+setView({ x: 9999, y: 9999, zoom: 2 }, { skipConstraints: true })
+```
+
+### Exported Helpers
+
+The library also exports a few pure math helpers for manual coordinate work:
+
+```ts
+import { clamp, distance, angleBetween } from "use-zoom-pinch"
+
+clamp(15, 0, 10) // 10
+distance(0, 0, 3, 4) // 5
+angleBetween(0, 0, 0, 10) // 90 (degrees)
+```
+
 ## Navigation
 
 ```tsx
@@ -164,7 +188,7 @@ const { panTo, panBy, zoomTo, fitToRect } = useZoomPinch({ containerRef })
 // Center on a point in content space
 panTo(500, 300, { animate: true })
 
-// Shift viewport by 100px right, 50px down
+// Shift viewport by 100px right, 50px down (screen-space delta)
 panBy(100, 50)
 
 // Zoom to 3x centered on a content-space point
@@ -408,26 +432,26 @@ useZoomPinch({ containerRef, panButton: 1 })
 
 #### Returns
 
-| Property          | Type                               | Description                                    |
-| ----------------- | ---------------------------------- | ---------------------------------------------- |
-| `view`            | `ViewState`                        | Current view state                             |
-| `isAnimating`     | `boolean`                          | Whether an animation is running                |
-| `setView`         | `(view, options?) => void`         | Imperatively set the view                      |
-| `centerZoom`      | `(zoom, options?) => void`         | Zoom to level, centered in container           |
-| `resetView`       | `(options?) => void`               | Reset to `{ x: 0, y: 0, zoom: 1 }`             |
-| `zoomIn`          | `(step?, options?) => void`        | Zoom in by step (default 1.5x)                 |
-| `zoomOut`         | `(step?, options?) => void`        | Zoom out by step (default 1.5x)                |
-| `zoomToElement`   | `(el, scale?, options?) => void`   | Zoom and center on an element                  |
-| `panTo`           | `(x, y, options?) => void`         | Center viewport on content-space point         |
-| `panBy`           | `(dx, dy, options?) => void`       | Shift viewport by relative offset              |
-| `zoomTo`          | `(zoom, point?, options?) => void` | Zoom to level, optionally anchored             |
-| `fitToRect`       | `(rect, options?) => void`         | Fit a content-space rectangle into view        |
-| `rotateTo`        | `(angle, options?) => void`        | Set rotation to absolute angle (degrees)       |
-| `rotateBy`        | `(delta, options?) => void`        | Rotate by relative delta (degrees)             |
-| `screenToContent` | `(screenX, screenY) => { x, y }`   | Convert screen to content coordinates          |
-| `contentToScreen` | `(contentX, contentY) => { x, y }` | Convert content to screen coordinates          |
-| `fitToContent`    | `(options?) => void`               | Fit content to container (needs `contentRect`) |
-| `snapZoom`        | `(options?) => void`               | Snap zoom to nearest `zoomSnapLevels`          |
+| Property          | Type                               | Description                                           |
+| ----------------- | ---------------------------------- | ----------------------------------------------------- |
+| `view`            | `ViewState`                        | Current view state                                    |
+| `isAnimating`     | `boolean`                          | Whether an animation is running                       |
+| `setView`         | `(view, options?) => void`         | Imperatively set the view                             |
+| `centerZoom`      | `(zoom, options?) => void`         | Zoom to level, centered in container                  |
+| `resetView`       | `(options?) => void`               | Reset to `initialViewState` (or `{0,0,1,0}` if unset) |
+| `zoomIn`          | `(step?, options?) => void`        | Zoom in by step (default 1.5x)                        |
+| `zoomOut`         | `(step?, options?) => void`        | Zoom out by step (default 1.5x)                       |
+| `zoomToElement`   | `(el, scale?, options?) => void`   | Zoom and center on an element                         |
+| `panTo`           | `(x, y, options?) => void`         | Center viewport on content-space point                |
+| `panBy`           | `(dx, dy, options?) => void`       | Shift viewport by relative offset (screen px)         |
+| `zoomTo`          | `(zoom, point?, options?) => void` | Zoom to level, optionally anchored                    |
+| `fitToRect`       | `(rect, options?) => void`         | Fit a content-space rectangle into view               |
+| `rotateTo`        | `(angle, options?) => void`        | Set rotation to absolute angle (degrees)              |
+| `rotateBy`        | `(delta, options?) => void`        | Rotate by relative delta (degrees)                    |
+| `screenToContent` | `(screenX, screenY) => { x, y }`   | Convert screen to content coordinates                 |
+| `contentToScreen` | `(contentX, contentY) => { x, y }` | Convert content to screen coordinates                 |
+| `fitToContent`    | `(options?) => void`               | Fit content to container (needs `contentRect`)        |
+| `snapZoom`        | `(options?) => void`               | Snap zoom to nearest `zoomSnapLevels`                 |
 
 ### Types
 
@@ -449,6 +473,7 @@ interface AnimationOptions {
   animate?: boolean // default false
   duration?: number // default 300ms
   easing?: EasingFunction // default easeOut
+  skipConstraints?: boolean // default false (setView only)
 }
 
 type EasingFunction = (t: number) => number
@@ -536,7 +561,7 @@ The hook uses standard Web APIs available in all modern browsers:
 
 | Feature               | useZoomPinch | react-zoom-pan-pinch | @use-gesture/react | motion/react        |
 | --------------------- | ------------ | -------------------- | ------------------ | ------------------- |
-| Size (min+gzip)       | **~5.2 KB**  | ~13.2 KB             | ~8.9 KB            | ~41.6 KB            |
+| Size (min+gzip)       | **~5.8 KB**  | ~13.2 KB             | ~8.9 KB            | ~41.6 KB            |
 | Approach              | Hook         | Components + hook    | Gesture primitives | Animation + gesture |
 | Controlled mode       | ✅ Native    | ❌                   | ❌                 | ❌                  |
 | DOM wrappers          | ✅ None      | +2 divs              | ✅ None            | +1 div              |

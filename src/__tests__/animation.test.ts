@@ -126,11 +126,10 @@ describe("animated transitions", () => {
   })
 
   it("resetView with animate", () => {
-    const { result, unmount } = renderZoomPinch({
-      initialViewState: { x: 100, y: 200, zoom: 3 },
-    })
+    const { result, unmount } = renderZoomPinch()
 
     act(() => {
+      result.current.setView({ x: 100, y: 200, zoom: 3 })
       result.current.resetView({ animate: true, duration: 300, easing: linear })
     })
 

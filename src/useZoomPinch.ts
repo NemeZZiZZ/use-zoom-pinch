@@ -81,6 +81,11 @@ export function useZoomPinch({
   const configRef = useRef({ minScale, maxScale, panSpeed, zoomSpeed })
   configRef.current = { minScale, maxScale, panSpeed, zoomSpeed }
 
+  // Track the user-provided initial view so resetView / keyboard "0"
+  // can return to it instead of the hardcoded DEFAULT_VIEW.
+  const initialViewStateRef = useRef(initialViewState)
+  initialViewStateRef.current = initialViewState
+
   const shouldHandleEventRef = useRef(shouldHandleEvent)
   shouldHandleEventRef.current = shouldHandleEvent
 
@@ -189,6 +194,17 @@ export function useZoomPinch({
 
   // ── Core update ────────────────────────────────────────────────
 
+  // Write the next view state to the store (controlled or internal),
+  // skipping the no-op equality short-circuit. Used by both the
+  // constrained updateView and the unconstrained setView path.
+  const commitView = useCallback((next: ViewState) => {
+    if (onViewStateChangeRef.current) {
+      onViewStateChangeRef.current(next)
+    } else {
+      setInternalView(next)
+    }
+  }, [])
+
   const updateView = useCallback(
     (updater: (prev: ViewState) => ViewState, { isBounceSnap = false } = {}) => {
       const prev = viewRef.current
@@ -249,20 +265,25 @@ export function useZoomPinch({
       ) {
         return
       }
-      if (onViewStateChangeRef.current) {
-        onViewStateChangeRef.current(next)
-      } else {
-        setInternalView(next)
-      }
+      commitView(next)
     },
-    [],
+    [commitView],
   )
 
   const animateTo = useCallback(
-    (target: ViewState, options: AnimationOptions = {}) => {
+    (target: ViewState, options: AnimationOptions = {}, onComplete?: () => void) => {
       cancelAnimation()
-      setIsAnimating(true)
       const { duration = 300, easing: easingFn = easeOut } = options
+
+      // Guard: non-positive duration jumps to the target immediately,
+      // avoiding divide-by-zero (progress = Infinity) which would NaN the view.
+      if (duration <= 0) {
+        updateView(() => target)
+        onComplete?.()
+        return
+      }
+
+      setIsAnimating(true)
       const start = { ...viewRef.current }
       const startTime = performance.now()
 
@@ -287,6 +308,7 @@ export function useZoomPinch({
         } else {
           animationRef.current = null
           setIsAnimating(false)
+          onComplete?.()
         }
       }
       animationRef.current = requestAnimationFrame(tick)
@@ -410,8 +432,6 @@ export function useZoomPinch({
     const onWheel = (e: WheelEvent) => {
       if (!enabledRef.current) return
       if (shouldHandleEventRef.current && !shouldHandleEventRef.current(e)) return
-      e.preventDefault()
-      cancelAnimation()
 
       let deltaX = e.deltaX
       let deltaY = e.deltaY
@@ -436,23 +456,37 @@ export function useZoomPinch({
       // wheelMode: "zoom" inverts this — default is zoom, ctrlKey switches to pan.
       const isZoomEvent = wm === "zoom" ? !ctrlKey : ctrlKey
 
-      // Activation key checks
+      // Decide whether this event will actually be handled BEFORE calling
+      // preventDefault — otherwise we'd suppress the browser's default wheel
+      // behavior (page scroll, ctrl+wheel page zoom) even when the hook ignores
+      // the event (disabled gesture, or required activation key not held).
+      if (isZoomEvent && (!g.zoom || isGesturing)) return
       if (isZoomEvent && ak?.zoom && !pressedKeys.has(ak.zoom)) return
+      if (!isZoomEvent && !g.pan) return
       if (!isZoomEvent && ak?.pan && !pressedKeys.has(ak.pan)) return
+
+      // The event will be consumed: suppress native behavior and take over.
+      e.preventDefault()
+      cancelAnimation()
 
       updateView((prev) => {
         if (isZoomEvent) {
-          if (!g.zoom || isGesturing) return prev
           // Zoom start/end events (debounced end)
           if (!isZooming) {
             isZooming = true
             onZoomStartRef.current?.(prev)
+            // Apply zooming cursor while wheel-zoom is active
+            const cz = cursorRef.current
+            if (cz && cz.enabled) el.style.cursor = cz.zooming ?? "zoom-in"
           }
           if (zoomEndTimer) clearTimeout(zoomEndTimer)
           zoomEndTimer = setTimeout(() => {
             isZooming = false
             onZoomEndRef.current?.(viewRef.current)
             onTransformEndRef.current?.(viewRef.current)
+            // Restore idle cursor after zoom ends
+            const cz = cursorRef.current
+            if (cz && cz.enabled) el.style.cursor = cz.idle ?? "grab"
             snapOnEnd()
           }, 150)
 
@@ -493,20 +527,27 @@ export function useZoomPinch({
       if (mode === "zoomIn") {
         targetZoom = clamp(prev.zoom * step, minScale, maxScale)
       } else if (mode === "reset") {
-        targetZoom = 1
+        targetZoom = initialViewStateRef.current.zoom
       } else {
         // toggle: if zoomed in, reset; otherwise zoom in
         const isZoomedIn = prev.zoom > 1.05
-        targetZoom = isZoomedIn ? 1 : clamp(prev.zoom * step, minScale, maxScale)
+        targetZoom = isZoomedIn
+          ? initialViewStateRef.current.zoom
+          : clamp(prev.zoom * step, minScale, maxScale)
       }
 
       if (mode === "reset" || (mode === "toggle" && prev.zoom > 1.05)) {
-        animateTo({ x: 0, y: 0, zoom: 1 }, { duration: 300 })
+        // Reset/toggle-back returns to the user-provided initialViewState
+        // (preserves any custom x/y/zoom/rotation), consistent with resetView().
+        animateTo(initialViewStateRef.current, { duration: 300 }, () =>
+          onTransformEndRef.current?.(viewRef.current),
+        )
       } else {
         const s = targetZoom / prev.zoom
         animateTo(
           { zoom: targetZoom, x: px - (px - prev.x) * s, y: py - (py - prev.y) * s },
           { duration: 300 },
+          () => onTransformEndRef.current?.(viewRef.current),
         )
       }
     }
@@ -587,6 +628,8 @@ export function useZoomPinch({
         if (Math.abs(vx) < 0.5 && Math.abs(vy) < 0.5) {
           inertiaFrameRef.current = null
           snapOnEnd()
+          // Transform fully settled: fire the unified end callback.
+          onTransformEndRef.current?.(viewRef.current)
           return
         }
         updateView((prev) => ({ ...prev, x: prev.x + vx, y: prev.y + vy }))
@@ -602,7 +645,6 @@ export function useZoomPinch({
       if (activePointers.size === 0) isDragging = false
       if (wasDragging && activePointers.size === 0) {
         onPanEndRef.current?.(viewRef.current)
-        onTransformEndRef.current?.(viewRef.current)
         const cc3 = cursorRef.current
         if (cc3 && cc3.enabled) setCursor(cc3.idle ?? "grab")
 
@@ -621,9 +663,13 @@ export function useZoomPinch({
             lastTapY = e.clientY
           }
         } else {
-          // Inertia: start momentum after drag, then snap
+          // Inertia: start momentum after drag, then snap.
+          // onTransformEnd fires once inertia fully settles (or immediately below
+          // when there is no inertia) — not at pointer-up, so consumers observe
+          // the final resting position rather than a mid-motion snapshot.
           if (!startInertia()) {
             snapOnEnd()
+            onTransformEndRef.current?.(viewRef.current)
           }
           lastTapTime = 0 // reset double-tap after drag
         }
@@ -682,10 +728,11 @@ export function useZoomPinch({
       const { px, py } = getRelCoords(initialCenter.x, initialCenter.y)
 
       const currentAngle = angleBetween(t1.clientX, t1.clientY, t2.clientX, t2.clientY)
-      const newRotation =
-        g.rotate && !isGesturing
-          ? pinchState.rotation! + (currentAngle - initialAngle)
-          : (pinchState.rotation ?? 0)
+      const akRotate = activationKeysRef.current?.rotate
+      const rotateAllowed = g.rotate && !isGesturing && (!akRotate || pressedKeys.has(akRotate))
+      const newRotation = rotateAllowed
+        ? pinchState.rotation! + (currentAngle - initialAngle)
+        : (pinchState.rotation ?? 0)
 
       // Rotation delta in radians for coordinate compensation
       const dr = ((newRotation - (pinchState.rotation ?? 0)) * Math.PI) / 180
@@ -743,7 +790,9 @@ export function useZoomPinch({
       const newZoom = g.zoom
         ? clamp(gestureBaseZoom * ge.scale, minScale, maxScale)
         : gestureBaseZoom
-      const newRotation = g.rotate ? gestureBaseRotation + ge.rotation : gestureBaseRotation
+      const akRotate = activationKeysRef.current?.rotate
+      const rotateAllowed = g.rotate && (!akRotate || pressedKeys.has(akRotate))
+      const newRotation = rotateAllowed ? gestureBaseRotation + ge.rotation : gestureBaseRotation
 
       // Anchor both zoom and rotation to container center
       const cx = (el.offsetWidth ?? 0) / 2
@@ -842,17 +891,21 @@ export function useZoomPinch({
           break
         case "0":
           cancelAnimation()
-          updateView(() => DEFAULT_VIEW)
+          updateView(() => initialViewStateRef.current)
           handled = true
           break
         case "[":
           if (g.rotate) {
+            const akR0 = activationKeysRef.current?.rotate
+            if (akR0 && !pressedKeys.has(akR0)) break
             updateView((p) => ({ ...p, rotation: (p.rotation ?? 0) - kb.rotateStep }))
             handled = true
           }
           break
         case "]":
           if (g.rotate) {
+            const akR1 = activationKeysRef.current?.rotate
+            if (akR1 && !pressedKeys.has(akR1)) break
             updateView((p) => ({ ...p, rotation: (p.rotation ?? 0) + kb.rotateStep }))
             handled = true
           }
@@ -873,6 +926,20 @@ export function useZoomPinch({
       savedCursor = el.style.cursor
       setCursor(cc.idle ?? "grab")
     }
+
+    // ── Clear activation keys on focus loss ─────────────────────
+    // If the user alt-tabs while holding Shift/Alt/Control, the keyup
+    // never fires and the key would "stick". Reset on blur/visibilitychange.
+
+    const clearPressedKeys = () => pressedKeys.clear()
+    window.addEventListener("blur", clearPressedKeys)
+    document.addEventListener("visibilitychange", clearPressedKeys)
+
+    // ── Suppress native context menu when panning with right mouse button
+    const onContextMenu = (e: MouseEvent) => {
+      if (panButtonRef.current === 2) e.preventDefault()
+    }
+    el.addEventListener("contextmenu", onContextMenu)
 
     // ── Register listeners ─────────────────────────────────────
 
@@ -911,6 +978,9 @@ export function useZoomPinch({
       el.removeEventListener("gesturechange", onGestureChange)
       el.removeEventListener("gestureend", onGestureEnd)
       el.removeEventListener("keydown", onKeyDown)
+      window.removeEventListener("blur", clearPressedKeys)
+      document.removeEventListener("visibilitychange", clearPressedKeys)
+      el.removeEventListener("contextmenu", onContextMenu)
       window.removeEventListener("keydown", onKeyDownTrack)
       window.removeEventListener("keyup", onKeyUpTrack)
     }
@@ -925,9 +995,14 @@ export function useZoomPinch({
         return
       }
       cancelAnimation()
+      if (options?.skipConstraints) {
+        // Bypass bounds/axis/snap: write the view verbatim.
+        commitView(v)
+        return
+      }
       updateView(() => v)
     },
-    [animateTo, cancelAnimation, updateView],
+    [animateTo, cancelAnimation, updateView, commitView],
   )
 
   const centerZoom = useCallback(
@@ -954,7 +1029,7 @@ export function useZoomPinch({
   )
 
   const resetView = useCallback(
-    (options?: AnimationOptions) => setView(DEFAULT_VIEW, options),
+    (options?: AnimationOptions) => setView(initialViewStateRef.current, options),
     [setView],
   )
 
@@ -1217,11 +1292,21 @@ export function useZoomPinch({
     // Fit on mount
     fitToContent()
 
+    // Debounce resize events: a continuous drag of the window emits many
+    // ResizeObserver entries; refitting on each one would yank the viewport.
+    let resizeTimer: ReturnType<typeof setTimeout> | null = null
     const ro = new ResizeObserver(() => {
-      fitToContent()
+      if (resizeTimer) clearTimeout(resizeTimer)
+      resizeTimer = setTimeout(() => {
+        resizeTimer = null
+        fitToContent()
+      }, 150)
     })
     ro.observe(container)
-    return () => ro.disconnect()
+    return () => {
+      if (resizeTimer) clearTimeout(resizeTimer)
+      ro.disconnect()
+    }
   }, [containerRef, fitToContent])
 
   return {
@@ -1246,18 +1331,21 @@ export function useZoomPinch({
   }
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────
+// ── Helpers (exported for consumers doing manual coordinate math) ────
 
-function clamp(value: number, min: number, max: number): number {
+/** Clamp `value` to the inclusive [min, max] range. */
+export function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(value, max))
 }
 
-function distance(x1: number, y1: number, x2: number, y2: number): number {
+/** Euclidean distance between two points (x1,y1) and (x2,y2). */
+export function distance(x1: number, y1: number, x2: number, y2: number): number {
   const dx = x1 - x2
   const dy = y1 - y2
   return Math.sqrt(dx * dx + dy * dy)
 }
 
-function angleBetween(x1: number, y1: number, x2: number, y2: number): number {
+/** Angle in degrees of the vector from (x1,y1) to (x2,y2). */
+export function angleBetween(x1: number, y1: number, x2: number, y2: number): number {
   return Math.atan2(y2 - y1, x2 - x1) * (180 / Math.PI)
 }

@@ -6,6 +6,9 @@ import {
   firePointerMove,
   firePointerUp,
   fireWheel,
+  fireTouchStart,
+  fireTouchMove,
+  fireTouchEnd,
 } from "./helpers"
 
 // ── Bounce at bounds ──────────────────────────────────────────────────
@@ -194,30 +197,34 @@ describe("wheelMode", () => {
 // ── Rotation snap levels ──────────────────────────────────────────────
 
 describe("rotation snap levels", () => {
-  it("snaps rotation to nearest level on gesture end", () => {
+  it("snaps rotation to nearest level on pinch gesture end", () => {
     vi.useFakeTimers()
 
-    const { result } = renderZoomPinch({
+    const { result, container } = renderZoomPinch({
       gestures: { pan: true, zoom: true, rotate: true },
       rotation: { snapLevels: [0, 90, 180, 270] },
       initialViewState: { x: 0, y: 0, zoom: 1, rotation: 80 },
       inertia: false,
     })
 
-    // Trigger snapOnEnd via imperative action + snap
-    // rotateBy triggers updateView, but we need gesture end for snap.
-    // Let's use a pointer drag to trigger snapOnEnd
+    // A two-finger gesture triggers snapOnEnd on touchend.
+    // Start near 80°, which is closest to the 90° snap level.
+    fireTouchStart(container, [
+      { x: 300, y: 300 },
+      { x: 500, y: 300 },
+    ])
+    fireTouchMove(container, [
+      { x: 300, y: 300 },
+      { x: 500, y: 300 },
+    ])
+    fireTouchEnd(container)
+
+    // snapOnEnd runs animateTo (150ms) to snap rotation 80 → 90
     act(() => {
-      result.current.rotateBy(0) // set rotation to 80 (already)
+      vi.advanceTimersByTime(200)
     })
 
-    // Manually test snapZoom-style: set rotation close to 90, expect snap
-    // Actually, snapOnEnd is called on gesture end, not on imperative.
-    // Let's just verify the rotation options snapLevels exist on the hook
-    // by checking the initial rotation through an explicit snapOnEnd-like path.
-
-    // The simplest way: trigger a drag and release to invoke snapOnEnd
-    // But rotation snap happens in snapOnEnd, which is called after gestures.
+    expect(result.current.view.rotation).toBe(90)
 
     vi.useRealTimers()
   })

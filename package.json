@@ -1,7 +1,7 @@
 {
   "name": "use-zoom-pinch",
-  "version": "0.3.0",
-  "description": "Lightweight React hook for pan, pinch-to-zoom, rotation, and scroll zoom with trackpad and touch support. ~5.2 KB gzipped, zero dependencies.",
+  "version": "0.4.0",
+  "description": "Lightweight React hook for pan, pinch-to-zoom, rotation, and scroll zoom with trackpad and touch support. ~5.8 KB gzipped, zero dependencies.",
   "keywords": [
     "react",
     "hook",
@@ -59,7 +59,8 @@
   "files": [
     "dist",
     "LICENSE",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsup",
@@ -73,7 +74,7 @@
     "test:watch": "vitest",
     "docs:dev": "cd docs && npm run dev",
     "docs:build": "cd docs && npm run build",
-    "prepublishOnly": "npm run test && npm run typecheck && npm run lint && npm run build"
+    "prepublishOnly": "npm run test && npm run typecheck && npm run lint && npm run format:check && npm run build"
   },
   "peerDependencies": {
     "react": ">=18.0.0"

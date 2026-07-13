@@ -204,9 +204,13 @@ describe("keyboard", () => {
       initialViewState: { x: 100, y: 100, zoom: 3 },
     })
 
+    // Move away first
+    act(() => result.current.setView({ x: 500, y: 500, zoom: 10 }))
+
     fireKey(container, "0")
 
-    expect(result.current.view).toMatchObject({ x: 0, y: 0, zoom: 1 })
+    // Resets to initialViewState (not hardcoded {0,0,1})
+    expect(result.current.view).toMatchObject({ x: 100, y: 100, zoom: 3 })
   })
 
   it("uses custom panStep", () => {

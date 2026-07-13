@@ -41,13 +41,20 @@ describe("double-tap zoom", () => {
     unmount()
   })
 
-  it("toggles back to zoom 1 on second double-tap", () => {
+  it("toggles back to initialViewState on second double-tap", () => {
     const { result, container, unmount } = renderZoomPinch({
-      initialViewState: { x: 0, y: 0, zoom: 2 },
+      initialViewState: { x: 0, y: 0, zoom: 1 },
     })
 
+    // Zoom in first via double-tap (toggle → zoom in by step 2)
     doubleTap(container)
+    act(() => {
+      vi.advanceTimersByTime(400)
+    })
+    expect(result.current.view.zoom).toBe(2)
 
+    // Second double-tap toggles back to initialViewState {0,0,1}
+    doubleTap(container)
     act(() => {
       vi.advanceTimersByTime(400)
     })
@@ -90,7 +97,7 @@ describe("double-tap zoom", () => {
     unmount()
   })
 
-  it("uses 'reset' mode", () => {
+  it("uses 'reset' mode (resets to initialViewState)", () => {
     const { result, container, unmount } = renderZoomPinch({
       initialViewState: { x: 100, y: 200, zoom: 3 },
       doubleTap: { mode: "reset" },
@@ -102,7 +109,9 @@ describe("double-tap zoom", () => {
       vi.advanceTimersByTime(400)
     })
 
-    expect(result.current.view).toEqual({ x: 0, y: 0, zoom: 1, rotation: 0 })
+    // reset returns to initialViewState (not hardcoded {0,0,1}).
+    // rotation is undefined here because initialViewState didn't set it.
+    expect(result.current.view).toEqual({ x: 100, y: 200, zoom: 3, rotation: undefined })
     unmount()
   })
 

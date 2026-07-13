@@ -17,6 +17,13 @@ export interface AnimationOptions {
   duration?: number
   /** Easing function. @default easeOut */
   easing?: EasingFunction
+  /**
+   * Skip bounds clamping, axis locking, and snap-to-grid when set via `setView`.
+   * Useful when you need to position the viewport precisely, even outside bounds.
+   * Only affects `setView`; gestures are always constrained.
+   * @default false
+   */
+  skipConstraints?: boolean
 }
 
 export interface DoubleTapOptions {
@@ -196,7 +203,7 @@ export interface UseZoomPinchReturn {
   zoomToElement: (el: HTMLElement, scale?: number, options?: AnimationOptions) => void
   /** Pan to a content-space coordinate, keeping current zoom. */
   panTo: (x: number, y: number, options?: AnimationOptions) => void
-  /** Pan by a relative delta in content-space pixels. */
+  /** Pan by a relative delta in screen-space pixels (applied directly to x/y). */
   panBy: (dx: number, dy: number, options?: AnimationOptions) => void
   /** Zoom to a specific level, optionally centered on a content-space point. */
   zoomTo: (zoom: number, point?: { x: number; y: number }, options?: AnimationOptions) => void

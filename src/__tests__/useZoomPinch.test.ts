@@ -265,16 +265,32 @@ describe("useZoomPinch", () => {
   })
 
   describe("resetView", () => {
-    it("resets to default view", () => {
-      const { result, unmount } = renderZoomPinch({
-        initialViewState: { x: 100, y: 200, zoom: 3 },
-      })
+    it("resets to default view when no initialViewState given", () => {
+      const { result, unmount } = renderZoomPinch()
 
+      act(() => {
+        result.current.setView({ x: 100, y: 200, zoom: 3 })
+      })
       act(() => {
         result.current.resetView()
       })
 
       expect(result.current.view).toEqual({ x: 0, y: 0, zoom: 1, rotation: 0 })
+      unmount()
+    })
+
+    it("resets to initialViewState", () => {
+      const initial = { x: 50, y: -30, zoom: 2, rotation: 15 }
+      const { result, unmount } = renderZoomPinch({ initialViewState: initial })
+
+      act(() => {
+        result.current.setView({ x: 999, y: 999, zoom: 5 })
+      })
+      act(() => {
+        result.current.resetView()
+      })
+
+      expect(result.current.view).toEqual(initial)
       unmount()
     })
   })
